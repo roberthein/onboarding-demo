@@ -24,7 +24,7 @@ struct OnboardingViewModelTests {
         let vm = OnboardingViewModel()
         vm.selectSkillLevel(.beginner)
         #expect(vm.skillLevel == .beginner)
-        vm.selectSkillLevel(.expert)
-        #expect(vm.skillLevel == .expert)
+        vm.selectSkillLevel(.advanced)
+        #expect(vm.skillLevel == .advanced)
     }
 }

@@ -1,17 +1,30 @@
 import UIKit
 
+private final class AppearAnimationContext {
+    let startTime: CFTimeInterval
+    let duration: CFTimeInterval
+    init(startTime: CFTimeInterval, duration: CFTimeInterval) {
+        self.startTime = startTime
+        self.duration = duration
+    }
+}
+
 public final class OnboardingContainerViewController: UIViewController {
     private let themeProvider: ThemeProviding
     private let debugProvider: DebugProviding
     private let progressCoordinator: ScrollProgressCoordinator
     private let viewModel: OnboardingViewModel
+    private var mainContentView: MainContentFigmaView!
     private var pageViewControllers: [UIViewController] = []
+    private var pageAppearanceUpdatables: [PageAppearanceUpdatable] = []
     private var progressTask: Task<Void, Never>?
     private var themeTask: Task<Void, Never>?
     private var debugTask: Task<Void, Never>?
     private var lastThemeId: String?
     private var lastTheme: Theme?
     private var lastScrollSnapshot: ScrollProgressSnapshot?
+    private var hasAppearAnimationCompleted = false
+    private var appearDisplayLink: CADisplayLink?
 
     private var containerView: OnboardingContainerView {
         view as! OnboardingContainerView
@@ -39,28 +52,40 @@ public final class OnboardingContainerViewController: UIViewController {
 
     override public func viewDidLoad() {
         super.viewDidLoad()
-        Task { @MainActor [weak weakSelf = self] in
-            guard let weakSelf else { return }
-            let theme = await themeProvider.currentTheme
-            weakSelf.view.backgroundColor = theme.color.primaryBackground
-        }
 
         let congratsViewModel = CongratulationsViewModel(onboardingViewModel: viewModel)
-        let welcome = WelcomePageViewController(themeProvider: themeProvider)
+        mainContentView = MainContentFigmaView(
+            accolade: Accolade(icon: .appleLogo, title: LocalizedStrings.MainContent.appleDesignAward, subtitle: LocalizedStrings.MainContent.winner)
+        )
         let accolades = AccoladesPageViewController(themeProvider: themeProvider)
         let skillPicker = SkillPickerPageViewController(themeProvider: themeProvider, viewModel: viewModel)
         let congrats = CongratulationsPageViewController(themeProvider: themeProvider, viewModel: congratsViewModel)
 
-        pageViewControllers = [welcome, accolades, skillPicker, congrats]
+        pageViewControllers = [accolades, skillPicker, congrats]
+        pageAppearanceUpdatables = [mainContentView, accolades, skillPicker, congrats]
         addChildViewControllers()
-        let pageHosts = pageViewControllers.map { vc in vc.view! }
+        pageViewControllers.forEach { $0.loadViewIfNeeded() }
+        let pageHosts: [UIView] = [mainContentView] + pageViewControllers.map { $0.view! }
         containerView.pagingView.configure(numberOfPages: 4, pageViews: pageHosts)
+        containerView.pagingView.onScroll = { [weak self] scrollView in
+            guard let self else { return }
+            let contentOffsetX = scrollView.contentOffset.x
+            let pageWidth = scrollView.bounds.width > 0
+                ? scrollView.bounds.width
+                : self.containerView.pagingView.bounds.width
+            guard pageWidth > 0 else { return }
+            self.mainContentView.applyScrollTranslation(contentOffsetX: contentOffsetX, pageWidth: pageWidth)
+        }
 
         containerView.pagingView.onProgress { [progressCoordinator] snapshot in
             Task { await progressCoordinator.report(snapshot) }
         }
 
         setupFooter()
+
+        lastTheme = .figma
+        lastThemeId = Theme.fallback.id
+        applyThemeUpdates(theme: .figma, isDebugEnabled: false)
 
         progressTask = Task { @MainActor [weak weakSelf = self] in
             let stream = await progressCoordinator.progressStream()
@@ -75,17 +100,70 @@ public final class OnboardingContainerViewController: UIViewController {
         setupThemeStream()
         setupDebugStream()
         Task { @MainActor in
-            let theme = await themeProvider.currentTheme
-            lastThemeId = theme.id
-            lastTheme = theme
             await refreshAll()
         }
     }
 
+    override public func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        runAppearAnimation()
+    }
+
     deinit {
+        appearDisplayLink?.invalidate()
         progressTask?.cancel()
         themeTask?.cancel()
         debugTask?.cancel()
+    }
+
+    private func runAppearAnimation() {
+        guard !hasAppearAnimationCompleted else { return }
+        let theme = lastTheme ?? .figma
+        let duration = theme.motion.duration * 3
+        let startTime = CACurrentMediaTime()
+        containerView.setGradientProgress(-1)
+        mainContentView.setAppearProgress(0)
+        containerView.footerView.setAppearProgress(0)
+        containerView.pagingView.scrollView.isScrollEnabled = false
+
+        let displayLink = CADisplayLink(target: self, selector: #selector(appearAnimationTick(_:)))
+        displayLink.add(to: .main, forMode: .common)
+        appearDisplayLink = displayLink
+        objc_setAssociatedObject(displayLink, &Self.displayLinkKey, AppearAnimationContext(startTime: startTime, duration: duration), .OBJC_ASSOCIATION_RETAIN)
+    }
+
+    private static var displayLinkKey: UInt8 = 0
+
+    @objc private func appearAnimationTick(_ link: CADisplayLink) {
+        guard let context = objc_getAssociatedObject(link, &Self.displayLinkKey) as? AppearAnimationContext else { return }
+        let elapsed = CACurrentMediaTime() - context.startTime
+        let rawT = min(1, elapsed / context.duration)
+        let t = rawT.easeInOut()
+        let progress = -1 + t
+        containerView.setGradientProgress(progress)
+        mainContentView.setAppearProgress(t)
+        mainContentView.updateAppearance(expansionProgress: 0)
+        mainContentView.setVerticalOffsetProgress(progress)
+        let theme = lastTheme ?? .figma
+        let anim = theme.appearAnimation
+        let footerT = max(0, (t - anim.footerStartT) / (anim.footerEndT - anim.footerStartT))
+        containerView.footerView.setAppearProgress(footerT)
+
+        if t >= 1 {
+            link.invalidate()
+            appearDisplayLink = nil
+            hasAppearAnimationCompleted = true
+            containerView.pagingView.scrollView.isScrollEnabled = true
+            if let snapshot = lastScrollSnapshot {
+                containerView.setGradientProgress(snapshot.overallProgress)
+                mainContentView.setVerticalOffsetProgress(snapshot.overallProgress)
+                let expansionProgress = min(1, max(0, snapshot.overallProgress))
+                mainContentView.updateAppearance(expansionProgress: expansionProgress)
+            } else {
+                mainContentView.updateAppearance(expansionProgress: 0)
+            }
+            refreshFooterState()
+        }
     }
 
     override public func viewWillTransition(
@@ -101,8 +179,6 @@ public final class OnboardingContainerViewController: UIViewController {
             self.refreshFooterState(activePageIndex: savedPageIndex)
         })
     }
-
-    // MARK: Streams
 
     private func setupThemeStream() {
         themeTask = Task { @MainActor [weak weakSelf = self] in
@@ -121,7 +197,7 @@ public final class OnboardingContainerViewController: UIViewController {
     private func setupDebugStream() {
         debugTask = Task { @MainActor [weak weakSelf = self] in
             let stream = await debugProvider.debugStream()
-            for await isDebugEnabled in stream {
+            for await _ in stream {
                 guard let weakSelf else { return }
                 await weakSelf.refreshAll()
             }
@@ -150,16 +226,15 @@ public final class OnboardingContainerViewController: UIViewController {
     }
 
     private func adjustedAnimationDuration(for theme: Theme) -> TimeInterval {
-        let base = theme.motion.duration
-        return UIAccessibility.isReduceMotionEnabled ? base * theme.motion.reducedMotionScale : base
+        theme.motion.duration
     }
 
     private func applyThemeUpdates(theme: Theme, isDebugEnabled: Bool) {
         let menu = buildSettingsMenu(theme: theme, isDebugEnabled: isDebugEnabled)
         containerView.setSettingsMenu(menu, image: AppIcon.gearshape.image(theme: theme), tintColor: theme.color.textPrimary)
         applyDebugMode(isDebugEnabled: isDebugEnabled, theme: theme)
-        view.backgroundColor = theme.color.primaryBackground
-        containerView.footerView.apply(theme: theme)
+        containerView.apply(theme: theme)
+        mainContentView.apply(theme: theme)
         pageViewControllers.forEach { ($0 as? ThemedView)?.apply(theme: theme) }
         refreshFooterState()
         refreshDebugOverlay()
@@ -167,29 +242,29 @@ public final class OnboardingContainerViewController: UIViewController {
 
     private func buildSettingsMenu(theme: Theme, isDebugEnabled: Bool) -> UIMenu {
         let figmaAction = UIAction(
-            title: "Figma",
+            title: LocalizedStrings.SettingsMenu.figma,
             image: AppIcon.sunMax.image(theme: theme),
             state: theme == .figma ? .on : .off
         ) { [weak self] _ in
             Task { await self?.themeProvider.setTheme(.figma) }
         }
         let experimentalAction = UIAction(
-            title: "Experimental",
+            title: LocalizedStrings.SettingsMenu.experimental,
             image: AppIcon.moon.image(theme: theme),
             state: theme == .experimental ? .on : .off
         ) { [weak self] _ in
             Task { await self?.themeProvider.setTheme(.experimental) }
         }
         let debugAction = UIAction(
-            title: "Debug",
+            title: LocalizedStrings.SettingsMenu.debug,
             image: AppIcon.ant.image(theme: theme),
             state: isDebugEnabled ? .on : .off
         ) { [weak self] _ in
             Task { await self?.toggleDebugMode() }
         }
 
-        let themeMenu = UIMenu(title: "Appearance", options: .displayInline, children: [figmaAction, experimentalAction])
-        let debugMenu = UIMenu(title: "Developer", options: .displayInline, children: [debugAction])
+        let themeMenu = UIMenu(title: LocalizedStrings.SettingsMenu.appearance, options: .displayInline, children: [figmaAction, experimentalAction])
+        let debugMenu = UIMenu(title: LocalizedStrings.SettingsMenu.developer, options: .displayInline, children: [debugAction])
         return UIMenu(children: [themeMenu, debugMenu])
     }
 
@@ -201,12 +276,11 @@ public final class OnboardingContainerViewController: UIViewController {
     private func applyDebugMode(isDebugEnabled: Bool, theme: Theme) {
         containerView.setDebugModeEnabled(isDebugEnabled, themeBackground: theme.color.primaryBackground)
         containerView.pagingView.setDebugModeEnabled(isDebugEnabled)
+        mainContentView.setDebugModeEnabled(isDebugEnabled)
         pageViewControllers.forEach { vc in
             (vc.view as? ScrollablePageView)?.setDebugModeEnabled(isDebugEnabled)
         }
     }
-
-    // MARK: Debug Overlay
 
     private func refreshDebugOverlay() {
         let theme = lastTheme ?? .figma
@@ -221,74 +295,114 @@ public final class OnboardingContainerViewController: UIViewController {
     }
 
     private func handleProgress(_ snapshot: ScrollProgressSnapshot) {
+        if hasAppearAnimationCompleted {
+            containerView.setGradientProgress(snapshot.overallProgress)
+            mainContentView.setVerticalOffsetProgress(snapshot.overallProgress)
+            let expansionProgress = min(1, max(0, snapshot.overallProgress))
+            mainContentView.updateAppearance(expansionProgress: expansionProgress)
+        }
         snapshot.pageProgress.forEach { progressItem in
-            guard let viewController = pageViewControllers[safe: progressItem.pageIndex] else { return }
-            (viewController as? PageAppearanceUpdatable)?.updateAppearance(progress: progressItem.progress)
+            guard let updatable = pageAppearanceUpdatables[safe: progressItem.pageIndex] else { return }
+            updatable.updateAppearance(progress: progressItem.progress)
         }
         updateFooter(snapshot: snapshot)
     }
-
-    // MARK: Footer
 
     private func setupFooter() {
         containerView.footerView.onContinueTapped = { [weak self] in
             self?.handleContinueTapped()
         }
-        containerView.pagingView.shouldAllowScrollToPage = { [weak self] page in
-            guard page == 3 else { return true }
-            return self?.viewModel.skillLevel != nil
-        }
         viewModel.onSkillLevelChanged = { [weak self] _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 self?.refreshFooterState()
+                (self?.pageViewControllers.last as? CongratulationsPageViewController)?.refreshContent()
             }
         }
         refreshFooterState(activePageIndex: 0)
     }
 
     private func handleContinueTapped() {
-        let nextIndex = min(containerView.pagingView.currentPageIndex + 1, 3)
+        let currentIndex = containerView.pagingView.currentPageIndex
+        let nextIndex = min(currentIndex + 1, 3)
+        if nextIndex == 3 {
+            HapticsManager.success()
+        } else {
+            HapticsManager.medium()
+        }
         containerView.pagingView.scrollToPage(nextIndex, animated: true)
     }
 
     private func updateFooter(snapshot: ScrollProgressSnapshot) {
         let activePage = snapshot.pageProgress.first { $0.isActive }?.pageIndex ?? 0
-        let progressToFourthScreen = snapshot.progress(forPage: 3)
-        refreshFooterState(activePageIndex: activePage, progressToFourthScreen: progressToFourthScreen)
+        let rawProgress = snapshot.progress(forPage: 3)
+        let rawProgressToPage1 = snapshot.progress(forPage: 1)
+        let progressToPage1 = snapshot.overallProgress >= 1 ? 1 : rawProgressToPage1
+        let lastVisiblePageIndex = viewModel.skillLevel != nil ? 3 : 2
+        let progressToFourthScreen: CGFloat
+        if snapshot.overallProgress >= CGFloat(lastVisiblePageIndex) {
+            progressToFourthScreen = viewModel.skillLevel != nil ? 1 : 0
+        } else {
+            progressToFourthScreen = rawProgress
+        }
+        refreshFooterState(activePageIndex: activePage, progressToFourthScreen: progressToFourthScreen, progressToPage1: progressToPage1)
     }
 
-    private func refreshFooterState(activePageIndex: Int? = nil, progressToFourthScreen: CGFloat? = nil) {
+    private func refreshFooterState(activePageIndex: Int? = nil, progressToFourthScreen: CGFloat? = nil, progressToPage1: CGFloat? = nil) {
         let pageIndex = activePageIndex ?? containerView.pagingView.currentPageIndex
         let footer = containerView.footerView
         let theme = lastTheme ?? .figma
 
         let progress: CGFloat
-        if let p = progressToFourthScreen {
+        if viewModel.skillLevel != nil {
+            progress = 0
+        } else if let p = progressToFourthScreen {
             progress = p
         } else {
-            progress = pageIndex >= 3 ? 1 : 0
+            progress = 0
         }
 
-        let footerReservedHeight = (theme.layout.footerButtonHeight + theme.layout.footerBottomPadding) * (1 - progress)
+        let welcomeLabelProgress: CGFloat
+        if let p = progressToPage1 {
+            welcomeLabelProgress = p
+        } else {
+            welcomeLabelProgress = pageIndex >= 1 ? 1 : 0
+        }
+
+        let pageIndicatorSectionHeight = theme.layout.footerPageIndicatorTopMargin + theme.layout.footerPageIndicatorDotSize
+        let welcomeLabelSectionHeight = theme.layout.footerWelcomeLabelTopMargin + theme.layout.footerWelcomeLabelHeight + theme.layout.footerWelcomeLabelMarginToButton
+        let footerHeight = theme.layout.footerButtonHeight + pageIndicatorSectionHeight + welcomeLabelSectionHeight * (1 - welcomeLabelProgress)
+        let footerReservedHeight = (footerHeight + theme.layout.footerBottomPadding) * (1 - progress)
+
+        containerView.setFooterHeight(footerHeight)
         containerView.setFooterReservedHeight(footerReservedHeight)
 
-        footer.setVisibilityProgress(progress)
+        if hasAppearAnimationCompleted {
+            footer.setWelcomeLabelProgress(welcomeLabelProgress)
+            footer.setVisibilityProgress(progress)
+        }
 
         let title: String
         let isEnabled: Bool
         switch pageIndex {
         case 0, 1:
-            title = "Continue"
+            title = LocalizedStrings.Footer.continueTitle
             isEnabled = true
         case 2:
-            title = "Let's go"
+            title = LocalizedStrings.Footer.letsGo
             isEnabled = viewModel.skillLevel != nil
+        case 3:
+            title = LocalizedStrings.Footer.done
+            isEnabled = true
         default:
-            title = "Continue"
+            title = LocalizedStrings.Footer.continueTitle
             isEnabled = true
         }
 
         footer.continueButton.title = title
         footer.continueButton.isEnabled = isEnabled
+
+        footer.setCurrentPage(pageIndex, totalPages: 4)
+
+        containerView.pagingView.setLastPageIncluded(viewModel.skillLevel != nil)
     }
 }

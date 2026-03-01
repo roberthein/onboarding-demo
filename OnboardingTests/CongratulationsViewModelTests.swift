@@ -34,7 +34,7 @@ struct CongratulationsViewModelTests {
         vm.selectSkillLevel(.advanced)
         let congratsVM = CongratulationsViewModel(onboardingViewModel: vm)
         #expect(congratsVM.subtitleText == SkillLevel.advanced.congratulationSubtitle)
-        vm.selectSkillLevel(.expert)
-        #expect(congratsVM.subtitleText == SkillLevel.expert.congratulationSubtitle)
+        vm.selectSkillLevel(.intermediate)
+        #expect(congratsVM.subtitleText == SkillLevel.intermediate.congratulationSubtitle)
     }
 }

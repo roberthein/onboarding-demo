@@ -1,38 +1,38 @@
 import UIKit
 
-/// A custom UIControl for the footer primary action button.
-/// Styled via Theme and AppStyle; state and content are driven by the container.
 public final class FooterButton: UIControl {
     private let label: UILabel = {
-        let lbl = UILabel()
-        lbl.translatesAutoresizingMaskIntoConstraints = false
-        lbl.textAlignment = .center
-        lbl.adjustsFontForContentSizeCategory = true
-        return lbl
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.textAlignment = .center
+        return label
     }()
 
     public var title: String? {
         get { label.text }
-        set { label.text = newValue }
+        set {
+            label.text = newValue
+            updateAppearance()
+        }
     }
 
     override public var isEnabled: Bool {
         didSet { updateAppearance() }
     }
 
-    private var theme: Theme = .figma
+    private var theme: Theme?
 
     override public init(frame: CGRect) {
         super.init(frame: frame)
-        setup()
+        buildView()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        setup()
+        buildView()
     }
 
-    private func setup() {
+    private func buildView() {
         addSubview(label)
         NSLayoutConstraint.activate([
             label.topAnchor.constraint(equalTo: topAnchor),
@@ -45,18 +45,29 @@ public final class FooterButton: UIControl {
 
     public func apply(theme: Theme) {
         self.theme = theme
-        label.font = theme.continueButton.titleFont
         applyContinueButtonStyle(theme: theme)
         updateAppearance()
     }
 
     private func updateAppearance() {
-        if isEnabled {
-            backgroundColor = theme.color.accent
-            label.textColor = theme.color.onAccent
-        } else {
-            backgroundColor = theme.color.surface
-            label.textColor = theme.color.textSecondary
-        }
+        guard let theme else { return }
+        let font = theme.continueButton.titleFont
+        let kern = theme.continueButton.titleKern
+        let color = theme.color.onAccent
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineHeightMultiple = theme.textStyle.continueButtonLineHeightMultiple
+        paragraphStyle.alignment = .center
+        label.attributedText = NSAttributedString(
+            string: label.text ?? "",
+            attributes: [
+                .font: font,
+                .foregroundColor: color,
+                .kern: kern,
+                .paragraphStyle: paragraphStyle
+            ]
+        )
+
+        backgroundColor = theme.color.accent
+        alpha = isEnabled ? 1 : theme.continueButton.disabledAlpha
     }
 }

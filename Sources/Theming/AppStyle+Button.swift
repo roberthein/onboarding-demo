@@ -1,7 +1,5 @@
 import UIKit
 
-// MARK: - FooterButton Styling
-
 extension UIView {
     public func applyContinueButtonStyle(theme: Theme) {
         layer.cornerRadius = theme.continueButton.cornerRadius

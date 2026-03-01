@@ -48,7 +48,11 @@ public final class CongratulationsPageViewController: UIViewController {
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        contentView.setSubtitle(viewModel.subtitleText)
+        contentView.configure(title: viewModel.titleText, subtitle: viewModel.subtitleText)
+    }
+
+    public func refreshContent() {
+        contentView.configure(title: viewModel.titleText, subtitle: viewModel.subtitleText)
     }
 }
 

@@ -5,8 +5,11 @@ public typealias ScrollProgressHandler = @Sendable (ScrollProgressSnapshot) -> V
 public final class PagingScrollContainerView: UIView {
     private var progressHandler: ScrollProgressHandler?
     private var numberOfPages: Int = 0
+    private var lastHapticPageIndex: Int = -1
     private var pageWidth: CGFloat { bounds.width }
     private var isDebugModeEnabled: Bool = false
+    private var isLastPageIncluded: Bool = false
+    private var pageContainers: [UIView] = []
 
     public lazy var scrollView: UIScrollView = {
         let scrollView = UIScrollView()
@@ -16,27 +19,10 @@ public final class PagingScrollContainerView: UIView {
         scrollView.bounces = true
         scrollView.alwaysBounceHorizontal = true
         scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.clipsToBounds = false
         scrollView.delegate = self
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.backgroundColor = .clear
-        addSubview(scrollView)
-        addSubview(debugOverlay)
-        scrollView.addSubview(contentStack)
-        NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: topAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            debugOverlay.topAnchor.constraint(equalTo: topAnchor),
-            debugOverlay.leadingAnchor.constraint(equalTo: leadingAnchor),
-            debugOverlay.trailingAnchor.constraint(equalTo: trailingAnchor),
-            debugOverlay.bottomAnchor.constraint(equalTo: bottomAnchor),
-            contentStack.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            contentStack.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
-            contentStack.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            contentStack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            contentStack.heightAnchor.constraint(equalTo: scrollView.heightAnchor),
-        ])
         return scrollView
     }()
 
@@ -60,8 +46,31 @@ public final class PagingScrollContainerView: UIView {
 
     override public init(frame: CGRect) {
         super.init(frame: frame)
+        buildView()
+    }
+
+    private func buildView() {
         backgroundColor = .clear
-        _ = scrollView
+        addSubview(scrollView)
+        addSubview(debugOverlay)
+        scrollView.addSubview(contentStack)
+        let contentGuide = scrollView.contentLayoutGuide
+        let frameGuide = scrollView.frameLayoutGuide
+        NSLayoutConstraint.activate([
+            scrollView.topAnchor.constraint(equalTo: topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            debugOverlay.topAnchor.constraint(equalTo: topAnchor),
+            debugOverlay.leadingAnchor.constraint(equalTo: leadingAnchor),
+            debugOverlay.trailingAnchor.constraint(equalTo: trailingAnchor),
+            debugOverlay.bottomAnchor.constraint(equalTo: bottomAnchor),
+            contentStack.topAnchor.constraint(equalTo: contentGuide.topAnchor),
+            contentStack.leadingAnchor.constraint(equalTo: contentGuide.leadingAnchor),
+            contentStack.trailingAnchor.constraint(equalTo: contentGuide.trailingAnchor),
+            contentStack.bottomAnchor.constraint(equalTo: contentGuide.bottomAnchor),
+            contentStack.heightAnchor.constraint(equalTo: frameGuide.heightAnchor),
+        ])
     }
 
     public func setDebugModeEnabled(_ enabled: Bool) {
@@ -73,17 +82,19 @@ public final class PagingScrollContainerView: UIView {
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        _ = scrollView
+        buildView()
     }
 
     public func configure(numberOfPages: Int, pageViews: [UIView]) {
         precondition(pageViews.count == numberOfPages, "Page count mismatch")
         self.numberOfPages = numberOfPages
+        pageContainers = []
         contentStack.arrangedSubviews.forEach { contentStack.removeArrangedSubview($0); $0.removeFromSuperview() }
-        pageViews.forEach { view in
+        for (index, view) in pageViews.enumerated() {
             view.translatesAutoresizingMaskIntoConstraints = false
             let container = UIView()
             container.translatesAutoresizingMaskIntoConstraints = false
+            container.clipsToBounds = false
             container.addSubview(view)
             NSLayoutConstraint.activate([
                 view.topAnchor.constraint(equalTo: container.topAnchor),
@@ -91,19 +102,32 @@ public final class PagingScrollContainerView: UIView {
                 view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
                 view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             ])
-            contentStack.addArrangedSubview(container)
+            pageContainers.append(container)
+            if index < numberOfPages - 1 {
+                contentStack.addArrangedSubview(container)
+            }
         }
-        contentStack.arrangedSubviews.forEach { view in
-            view.widthAnchor.constraint(equalTo: scrollView.widthAnchor).isActive = true
+        let frameGuide = scrollView.frameLayoutGuide
+        let widthConstraints = (0 ..< min(pageContainers.count, numberOfPages - 1)).map { i in
+            pageContainers[i].widthAnchor.constraint(equalTo: frameGuide.widthAnchor)
         }
+        NSLayoutConstraint.activate(widthConstraints)
+        isLastPageIncluded = false
     }
 
     public func onProgress(_ handler: @escaping ScrollProgressHandler) {
         progressHandler = handler
     }
 
-    /// When set, invoked before a scroll ends to allow or deny scrolling to a given page index.
+    public var onScroll: ((UIScrollView) -> Void)?
+
     public var shouldAllowScrollToPage: ((Int) -> Bool)?
+
+    public func setLastPageIncluded(_ included: Bool) {
+        guard isLastPageIncluded != included else { return }
+        isLastPageIncluded = included
+        updateLastPageVisibility()
+    }
 
     public var currentPageIndex: Int {
         let pageWidth = max(1, scrollView.bounds.width)
@@ -140,6 +164,34 @@ public final class PagingScrollContainerView: UIView {
         progressHandler?(snapshot)
     }
 
+    private func updateLastPageVisibility() {
+        guard numberOfPages > 0 else { return }
+        let lastContainer = pageContainers[numberOfPages - 1]
+        let lastIsInStack = contentStack.arrangedSubviews.contains(lastContainer)
+
+        if isLastPageIncluded {
+            if !lastIsInStack {
+                contentStack.addArrangedSubview(lastContainer)
+                NSLayoutConstraint.activate([
+                    lastContainer.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+                ])
+            }
+        } else {
+            if lastIsInStack {
+                contentStack.removeArrangedSubview(lastContainer)
+                lastContainer.removeFromSuperview()
+                let width = max(1, scrollView.bounds.width)
+                if width > 0 {
+                    let maxPage = numberOfPages - 2
+                    let maxOffset = CGFloat(max(0, maxPage)) * width
+                    if scrollView.contentOffset.x > maxOffset {
+                        scrollView.contentOffset.x = maxOffset
+                    }
+                }
+            }
+        }
+    }
+
     override public func layoutSubviews() {
         super.layoutSubviews()
         reportProgress()
@@ -149,19 +201,15 @@ public final class PagingScrollContainerView: UIView {
 extension PagingScrollContainerView: UIScrollViewDelegate {
     public func scrollViewDidScroll(_ scrollView: UIScrollView) {
         reportProgress()
+        firePageSnapHapticIfNeeded()
+        onScroll?(scrollView)
     }
 
-    public func scrollViewWillEndDragging(
-        _ scrollView: UIScrollView,
-        withVelocity velocity: CGPoint,
-        targetContentOffset: UnsafeMutablePointer<CGPoint>
-    ) {
-        guard let shouldAllow = shouldAllowScrollToPage else { return }
-        let pageWidth = max(1, scrollView.bounds.width)
-        let targetPage = Int(round(targetContentOffset.pointee.x / pageWidth))
-        guard !shouldAllow(targetPage) else { return }
-        let fallbackPage = max(0, targetPage - 1)
-        targetContentOffset.pointee.x = CGFloat(fallbackPage) * pageWidth
+    private func firePageSnapHapticIfNeeded() {
+        let page = currentPageIndex
+        guard page != lastHapticPageIndex else { return }
+        lastHapticPageIndex = page
+        HapticsManager.light()
     }
 }
 

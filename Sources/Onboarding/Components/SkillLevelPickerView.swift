@@ -2,25 +2,35 @@ import UIKit
 
 public final class SkillLevelPickerView: UIView {
     private var buttons: [SkillLevel: UIButton] = [:]
+    private var buttonHeightConstraints: [SkillLevel: NSLayoutConstraint] = [:]
     public var onSelect: ((SkillLevel?) -> Void)?
     private var theme: Theme?
     private var selectedLevel: SkillLevel?
 
-    private lazy var stack: UIStackView = {
-        let defaultTheme = Theme.figma
+    private lazy var stackView: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .vertical
-        stackView.spacing = defaultTheme.spacing.item
+        stackView.spacing = 0
         stackView.distribution = .fill
         stackView.translatesAutoresizingMaskIntoConstraints = false
+        return stackView
+    }()
 
+    override public init(frame: CGRect) {
+        super.init(frame: frame)
+        buildView()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        buildView()
+    }
+
+    private func buildView() {
         SkillLevel.allCases.forEach { level in
-            let button = UIButton(type: .system)
+            let button = UIButton(type: .custom)
             button.setTitle(level.displayName, for: .normal)
-            button.accessibilityLabel = level.displayName
-            button.accessibilityHint = "Selects \(level.displayName) as your experience level"
             button.addTarget(self, action: #selector(didTap(_:)), for: .touchUpInside)
-            button.heightAnchor.constraint(equalToConstant: defaultTheme.layout.buttonHeight).isActive = true
             buttons[level] = button
             stackView.addArrangedSubview(button)
         }
@@ -33,61 +43,83 @@ public final class SkillLevelPickerView: UIView {
             stackView.trailingAnchor.constraint(equalTo: trailingAnchor),
             stackView.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
-        
-        return stackView
-    }()
-
-    override public init(frame: CGRect) {
-        super.init(frame: frame)
-        _ = stack
-    }
-
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        _ = stack
     }
 
     @objc private func didTap(_ sender: UIButton) {
         guard let (level, _) = buttons.first(where: { $0.value === sender }) else { return }
         let newSelection: SkillLevel? = level == selectedLevel ? nil : level
+        HapticsManager.selection()
         setSelected(newSelection)
         onSelect?(newSelection)
     }
 
     public func setSelected(_ level: SkillLevel?) {
-        selectedLevel = level
-        buttons.forEach { (skillLevel, button) in
-            button.isSelected = skillLevel == level
+        UIView.performWithoutAnimation {
+            selectedLevel = level
+            buttons.forEach { (skillLevel, button) in
+                button.isSelected = skillLevel == level
+            }
+            updateSelectionAppearance()
         }
-        updateSelectionAppearance()
     }
 }
 
 extension SkillLevelPickerView: ThemedView {
     public func apply(theme: Theme) {
         self.theme = theme
-        buttons.forEach { (skillLevel, button) in
-            var config = UIButton.Configuration.plain()
-            config.title = skillLevel.displayName
-            config.baseForegroundColor = theme.color.textPrimary
-            config.background.backgroundColor = theme.color.surface
-            config.background.cornerRadius = theme.radius.medium
-            config.contentInsets = .init(top: theme.spacing.md, leading: theme.spacing.lg, bottom: theme.spacing.md, trailing: theme.spacing.lg)
-            button.configuration = config
+        let picker = theme.skillLevelPicker
+        stackView.spacing = picker.spacing
+        for (level, button) in buttons {
+            let constraint = buttonHeightConstraints[level]
+                ?? button.heightAnchor.constraint(equalToConstant: picker.itemHeight)
+            if buttonHeightConstraints[level] == nil {
+                constraint.isActive = true
+                buttonHeightConstraints[level] = constraint
+            }
+            constraint.constant = picker.itemHeight
         }
-        updateSelectionAppearance()
+        updateAllButtonConfigurations()
     }
 }
 
 private extension SkillLevelPickerView {
     func updateSelectionAppearance() {
-        guard let currentTheme = theme else { return }
-        buttons.forEach { (_, button) in
-            var config = button.configuration ?? UIButton.Configuration.plain()
-            config.baseForegroundColor = button.isSelected ? currentTheme.color.accent : currentTheme.color.textPrimary
-            config.background.strokeColor = button.isSelected ? currentTheme.color.accent : .clear
-            config.background.strokeWidth = button.isSelected ? 2 : 0
+        updateAllButtonConfigurations()
+    }
+
+    func updateAllButtonConfigurations() {
+        guard let theme else { return }
+        let picker = theme.skillLevelPicker
+        let textColor = theme.color.textPrimary
+        let checkboxImage = UIImage(named: "checkbox")
+        let checkboxFilledImage = UIImage(named: "checkbox-filled")
+
+        buttons.forEach { (skillLevel, button) in
+            let isSelected = skillLevel == selectedLevel
+            var config = UIButton.Configuration.plain()
+            let attributedTitle = NSAttributedString(
+                string: skillLevel.displayName,
+                attributes: [
+                    .font: picker.font,
+                    .foregroundColor: textColor,
+                    .kern: picker.kern
+                ]
+            )
+            config.attributedTitle = AttributedString(attributedTitle)
+            config.baseForegroundColor = textColor
+            config.image = isSelected ? checkboxFilledImage : checkboxImage
+            config.imagePlacement = .leading
+            config.imagePadding = picker.imageTrailingMargin
+            config.background.backgroundColor = theme.color.surface.withAlphaComponent(0.1)
+            config.background.cornerRadius = theme.radius.medium
+            config.background.strokeColor = isSelected ? theme.color.accent : .clear
+            config.background.strokeWidth = isSelected ? picker.selectedStrokeWidth : 0
+            config.contentInsets = .init(top: picker.paddingVertical, leading: picker.imageLeadingMargin, bottom: picker.paddingVertical, trailing: picker.paddingHorizontal)
+            config.titleAlignment = .leading
             button.configuration = config
+            button.configurationUpdateHandler = { _ in }
+            button.contentHorizontalAlignment = .leading
+            button.tintColor = textColor
         }
     }
 }

@@ -22,39 +22,37 @@ public class ScrollablePageView: UIView {
     }()
 
     public lazy var scrollView: UIScrollView = {
-        let sv = UIScrollView()
-        sv.showsVerticalScrollIndicator = false
-        sv.showsHorizontalScrollIndicator = false
-        sv.alwaysBounceVertical = true
-        sv.contentInsetAdjustmentBehavior = .never
-        sv.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(sv)
-        sv.addSubview(contentStack)
-        return sv
+        let scrollView = UIScrollView()
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.alwaysBounceVertical = true
+        scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        return scrollView
     }()
 
     private lazy var contentStack: UIStackView = {
-        let stack = UIStackView(arrangedSubviews: [topSpacer, centeredContentView, bottomSpacer])
-        stack.axis = .vertical
-        stack.alignment = .fill
-        stack.distribution = .fill
-        stack.spacing = 0
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        return stack
+        let stackView = UIStackView()
+        stackView.axis = .vertical
+        stackView.alignment = .fill
+        stackView.distribution = .fill
+        stackView.spacing = 0
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        return stackView
     }()
 
     private lazy var topSpacer: UIView = {
-        let v = UIView()
-        v.translatesAutoresizingMaskIntoConstraints = false
-        v.setContentHuggingPriority(.defaultLow, for: .vertical)
-        return v
+        let spacer = UIView()
+        spacer.translatesAutoresizingMaskIntoConstraints = false
+        spacer.setContentHuggingPriority(.defaultLow, for: .vertical)
+        return spacer
     }()
 
     private lazy var bottomSpacer: UIView = {
-        let v = UIView()
-        v.translatesAutoresizingMaskIntoConstraints = false
-        v.setContentHuggingPriority(.defaultLow, for: .vertical)
-        return v
+        let spacer = UIView()
+        spacer.translatesAutoresizingMaskIntoConstraints = false
+        spacer.setContentHuggingPriority(.defaultLow, for: .vertical)
+        return spacer
     }()
 
     private lazy var contentDebugOverlay: UIView = {
@@ -67,11 +65,11 @@ public class ScrollablePageView: UIView {
     }()
 
     public lazy var centeredContentView: UIView = {
-        let v = UIView()
-        v.translatesAutoresizingMaskIntoConstraints = false
-        v.setContentHuggingPriority(.required, for: .vertical)
-        v.setContentCompressionResistancePriority(.required, for: .vertical)
-        return v
+        let contentView = UIView()
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.setContentHuggingPriority(.required, for: .vertical)
+        contentView.setContentCompressionResistancePriority(.required, for: .vertical)
+        return contentView
     }()
 
     override public init(frame: CGRect) {
@@ -86,16 +84,20 @@ public class ScrollablePageView: UIView {
 
     private func buildView() {
         backgroundColor = .clear
-        _ = scrollView
+        addSubview(scrollView)
+        scrollView.addSubview(contentStack)
+        contentStack.addArrangedSubview(topSpacer)
+        contentStack.addArrangedSubview(centeredContentView)
+        contentStack.addArrangedSubview(bottomSpacer)
         addSubview(pageDebugOverlay)
         addSubview(scrollViewDebugOverlay)
         centeredContentView.addSubview(contentDebugOverlay)
         scrollView.backgroundColor = .clear
         centeredContentView.backgroundColor = .clear
-        topSpacer.heightAnchor.constraint(equalTo: bottomSpacer.heightAnchor).isActive = true
         let contentGuide = scrollView.contentLayoutGuide
         let frameGuide = scrollView.frameLayoutGuide
         NSLayoutConstraint.activate([
+            topSpacer.heightAnchor.constraint(equalTo: bottomSpacer.heightAnchor),
             scrollView.topAnchor.constraint(equalTo: topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),

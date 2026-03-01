@@ -1,9 +1,12 @@
 import UIKit
 
 public final class WelcomePageView: ScrollablePageView {
+    private var theme: Theme?
+
     private lazy var titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Welcome"
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = LocalizedStrings.Welcome.title
         label.textAlignment = .center
         label.numberOfLines = 2
         return label
@@ -11,16 +14,17 @@ public final class WelcomePageView: ScrollablePageView {
 
     private lazy var subtitleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Discover what you can build"
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = LocalizedStrings.Welcome.subtitle
         label.textAlignment = .center
         label.numberOfLines = 2
         return label
     }()
 
     private lazy var stack: UIStackView = {
-        let stackView = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
+        let stackView = UIStackView()
         stackView.axis = .vertical
-        stackView.spacing = Theme.figma.spacing.item
+        stackView.spacing = 0
         stackView.alignment = .center
         stackView.translatesAutoresizingMaskIntoConstraints = false
         return stackView
@@ -28,15 +32,17 @@ public final class WelcomePageView: ScrollablePageView {
 
     override public init(frame: CGRect) {
         super.init(frame: frame)
-        setupContent()
+        buildView()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        setupContent()
+        buildView()
     }
 
-    private func setupContent() {
+    private func buildView() {
+        stack.addArrangedSubview(titleLabel)
+        stack.addArrangedSubview(subtitleLabel)
         centeredContentView.addSubview(stack)
         NSLayoutConstraint.activate([
             stack.topAnchor.constraint(equalTo: centeredContentView.topAnchor),
@@ -49,6 +55,8 @@ public final class WelcomePageView: ScrollablePageView {
 
 extension WelcomePageView: PageContentView {
     public func apply(theme: Theme) {
+        self.theme = theme
+        stack.spacing = theme.spacing.item
         titleLabel.applyTitleStyle(theme: theme)
         subtitleLabel.applySubtitleStyle(theme: theme)
     }
@@ -56,10 +64,11 @@ extension WelcomePageView: PageContentView {
 
 extension WelcomePageView {
     public func updateAppearance(progress: CGFloat) {
-        let scale = progress.map(from: 0...1, to: 0.92...1)
-        let alpha = progress
+        let t = theme ?? Theme.fallback
+        let wp = t.welcomePage
+        let scale = progress.map(from: 0...1, to: wp.titleScaleMin...wp.titleScaleMax)
         titleLabel.transform = CGAffineTransform(scaleX: scale, y: scale)
-        titleLabel.alpha = alpha
-        subtitleLabel.alpha = max(0, progress.map(from: 0.3...1, to: 0...1))
+        titleLabel.alpha = progress
+        subtitleLabel.alpha = max(0, progress.map(from: wp.subtitleFadeStart...wp.subtitleFadeEnd, to: 0...1))
     }
 }

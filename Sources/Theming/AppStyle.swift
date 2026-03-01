@@ -1,60 +1,73 @@
 import UIKit
 
-// MARK: - AppStyle
+private func roundedFont(size: CGFloat, weight: UIFont.Weight) -> UIFont {
+    let base = UIFont.systemFont(ofSize: size, weight: weight)
+    guard let roundedDesc = base.fontDescriptor.withDesign(.rounded) else { return base }
+    return UIFont(descriptor: roundedDesc, size: 0)
+}
 
 public enum AppStyle {
 
-    // MARK: Font (absolute typography values per variant)
-
     public enum Font {
         public enum Figma {
+            public static let largeTitle = UIFont(name: "SFProDisplay-Bold", size: 34) ?? UIFont.systemFont(ofSize: 34, weight: .bold)
             public static let title1 = UIFont.systemFont(ofSize: 28, weight: .heavy)
+            public static let title2 = UIFont(name: "SFProDisplay-Regular", size: 22) ?? UIFont.systemFont(ofSize: 22, weight: .regular)
             public static let headline = UIFont.systemFont(ofSize: 18, weight: .bold)
             public static let body = UIFont.systemFont(ofSize: 16, weight: .medium)
+            public static let accoladeTitle = UIFont(name: "SFProDisplay-Semibold", size: 13) ?? UIFont.systemFont(ofSize: 13, weight: .semibold)
+            public static let accoladeSubtitle = UIFont(name: "Avenir-Book", size: 13) ?? UIFont.systemFont(ofSize: 13, weight: .regular)
             public static let caption = UIFont.systemFont(ofSize: 13, weight: .medium)
             public static let monospaced = UIFont.monospacedSystemFont(ofSize: 11, weight: .medium)
         }
 
         public enum Experimental {
-            public static let title1 = UIFont.systemFont(ofSize: 42, weight: .semibold)
-            public static let headline = UIFont.systemFont(ofSize: 24, weight: .semibold)
-            public static let body = UIFont.systemFont(ofSize: 18, weight: .regular)
-            public static let caption = UIFont.systemFont(ofSize: 15, weight: .medium)
+            public static let largeTitle = roundedFont(size: 38, weight: .bold)
+            public static let title1 = roundedFont(size: 32, weight: .bold)
+            public static let title2 = roundedFont(size: 22, weight: .medium)
+            public static let headline = roundedFont(size: 20, weight: .semibold)
+            public static let body = roundedFont(size: 17, weight: .regular)
+            public static let accoladeTitle = roundedFont(size: 14, weight: .semibold)
+            public static let accoladeSubtitle = roundedFont(size: 14, weight: .regular)
+            public static let caption = roundedFont(size: 14, weight: .medium)
             public static let monospaced = UIFont.monospacedSystemFont(ofSize: 12, weight: .regular)
         }
     }
 
-    // MARK: Color (absolute color values per variant)
-
     public enum Color {
+        private static func color(named name: String) -> UIColor {
+            UIColor(named: name, in: Bundle.main, compatibleWith: nil) ?? UIColor.black
+        }
+
         public enum Figma {
-            public static let primaryBackground = UIColor(red: 0.93, green: 0.94, blue: 0.97, alpha: 1)
-            public static let surface = UIColor(red: 1, green: 1, blue: 1, alpha: 1)
-            public static let textPrimary = UIColor(red: 0.06, green: 0.06, blue: 0.1, alpha: 1)
-            public static let textSecondary = UIColor(red: 0.35, green: 0.35, blue: 0.42, alpha: 1)
-            public static let accent = UIColor(red: 0.12, green: 0.35, blue: 0.82, alpha: 1)
-            public static let primaryTint = UIColor(red: 0.08, green: 0.18, blue: 0.5, alpha: 1)
-            public static let secondaryTint = UIColor(red: 0.2, green: 0.28, blue: 0.52, alpha: 1)
-            public static let debugOverlayBackground = UIColor(red: 0.2, green: 0.22, blue: 0.28, alpha: 0.92)
-            public static let debugOverlayText = UIColor(red: 0.95, green: 0.96, blue: 0.98, alpha: 1)
-            public static let onAccent = UIColor.white
+            public static var primaryBackground: UIColor { color(named: "FigmaPrimaryBackground") }
+            public static var gradientPrimary: UIColor { color(named: "FigmaGradientPrimary") }
+            public static var gradientSecondary: UIColor { color(named: "FigmaGradientSecondary") }
+            public static var surface: UIColor { color(named: "FigmaSurface") }
+            public static var textPrimary: UIColor { color(named: "FigmaTextPrimary") }
+            public static var textSecondary: UIColor { color(named: "FigmaTextSecondary") }
+            public static var accent: UIColor { color(named: "FigmaAccent") }
+            public static var primaryTint: UIColor { accent }
+            public static var secondaryTint: UIColor { color(named: "FigmaSecondaryTint") }
+            public static var debugOverlayBackground: UIColor { color(named: "FigmaDebugOverlayBackground") }
+            public static var debugOverlayText: UIColor { color(named: "FigmaDebugOverlayText") }
+            public static var onAccent: UIColor { color(named: "FigmaOnAccent") }
         }
 
         public enum Experimental {
-            public static let primaryBackground = UIColor(red: 0.08, green: 0.08, blue: 0.12, alpha: 1)
-            public static let surface = UIColor(red: 0.14, green: 0.14, blue: 0.2, alpha: 1)
-            public static let textPrimary = UIColor(red: 0.95, green: 0.95, blue: 0.98, alpha: 1)
-            public static let textSecondary = UIColor(red: 0.55, green: 0.58, blue: 0.68, alpha: 1)
-            public static let accent = UIColor(red: 0.45, green: 0.65, blue: 1, alpha: 1)
-            public static let primaryTint = UIColor(red: 0.6, green: 0.7, blue: 0.95, alpha: 1)
-            public static let secondaryTint = UIColor(red: 0.5, green: 0.55, blue: 0.7, alpha: 1)
-            public static let debugOverlayBackground = UIColor(red: 0.12, green: 0.12, blue: 0.18, alpha: 0.95)
-            public static let debugOverlayText = UIColor(red: 0.92, green: 0.93, blue: 0.96, alpha: 1)
-            public static let onAccent = UIColor.white
+            public static var primaryBackground: UIColor { color(named: "ExperimentalPrimaryBackground") }
+            public static var gradientSecondary: UIColor { color(named: "ExperimentalGradientSecondary") }
+            public static var surface: UIColor { color(named: "ExperimentalSurface") }
+            public static var textPrimary: UIColor { color(named: "ExperimentalTextPrimary") }
+            public static var textSecondary: UIColor { color(named: "ExperimentalTextSecondary") }
+            public static var accent: UIColor { color(named: "ExperimentalAccent") }
+            public static var primaryTint: UIColor { accent }
+            public static var secondaryTint: UIColor { color(named: "ExperimentalSecondaryTint") }
+            public static var debugOverlayBackground: UIColor { color(named: "ExperimentalDebugOverlayBackground") }
+            public static var debugOverlayText: UIColor { color(named: "ExperimentalDebugOverlayText") }
+            public static var onAccent: UIColor { color(named: "ExperimentalOnAccent") }
         }
     }
-
-    // MARK: Margin (absolute spacing values per variant)
 
     public enum Margin {
         public enum Figma {
@@ -67,16 +80,14 @@ public enum AppStyle {
         }
 
         public enum Experimental {
-            public static let outer: CGFloat = 20
-            public static let inner: CGFloat = 10
+            public static let outer: CGFloat = 24
+            public static let inner: CGFloat = 12
             public static var outerDouble: CGFloat { outer * 2 }
             public static var outerHalf: CGFloat { outer / 2 }
             public static var innerDouble: CGFloat { inner * 2 }
             public static var innerHalf: CGFloat { inner / 2 }
         }
     }
-
-    // MARK: Spacing (absolute spacing values per variant)
 
     public enum Spacing {
         public enum Figma {
@@ -88,15 +99,13 @@ public enum AppStyle {
         }
 
         public enum Experimental {
-            public static let section: CGFloat = 28
-            public static let item: CGFloat = 14
-            public static let content: CGFloat = 36
+            public static let section: CGFloat = 32
+            public static let item: CGFloat = 16
+            public static let content: CGFloat = 40
             public static var sectionHalf: CGFloat { section / 2 }
             public static var itemHalf: CGFloat { item / 2 }
         }
     }
-
-    // MARK: Radius (absolute corner radius values per variant)
 
     public enum Radius {
         public enum Figma {
@@ -106,51 +115,197 @@ public enum AppStyle {
         }
 
         public enum Experimental {
-            public static let small: CGFloat = 10
-            public static let medium: CGFloat = 14
-            public static let large: CGFloat = 24
+            public static let small: CGFloat = 16
+            public static let medium: CGFloat = 24
+            public static let large: CGFloat = 32
         }
     }
-
-    // MARK: Layout (absolute layout dimensions per variant)
 
     public enum Layout {
         public enum Figma {
             public static let buttonHeight: CGFloat = 44
-            public static let footerButtonHeight: CGFloat = 52
+            public static let footerButtonHeight: CGFloat = 44
             public static let footerBottomPadding: CGFloat = 24
             public static let footerSlideOffset: CGFloat = 40
-            public static let footerHorizontalPadding: CGFloat = 16
+            public static let footerHorizontalPadding: CGFloat = 32
+            public static let footerWelcomeLabelTopMargin: CGFloat = 16
+            public static let footerWelcomeLabelMarginToButton: CGFloat = 24
+            public static let footerWelcomeLabelHeight: CGFloat = 22
+            public static let footerPageIndicatorTopMargin: CGFloat = 16
+            public static let footerPageIndicatorDotSize: CGFloat = 6
+            public static let footerPageIndicatorDotSpacing: CGFloat = 8
+            public static let footerPageIndicatorInactiveAlpha: CGFloat = 0.5
             public static let debugOverlayMargin: CGFloat = 10
             public static let debugOverlayPadding: CGFloat = 8
         }
 
         public enum Experimental {
-            public static let buttonHeight: CGFloat = 48
+            public static let buttonHeight: CGFloat = 52
             public static let footerButtonHeight: CGFloat = 56
-            public static let footerBottomPadding: CGFloat = 28
-            public static let footerSlideOffset: CGFloat = 44
-            public static let footerHorizontalPadding: CGFloat = 20
+            public static let footerBottomPadding: CGFloat = 32
+            public static let footerSlideOffset: CGFloat = 48
+            public static let footerHorizontalPadding: CGFloat = 28
+            public static let footerWelcomeLabelTopMargin: CGFloat = 20
+            public static let footerWelcomeLabelMarginToButton: CGFloat = 28
+            public static let footerWelcomeLabelHeight: CGFloat = 24
+            public static let footerPageIndicatorTopMargin: CGFloat = 20
+            public static let footerPageIndicatorDotSize: CGFloat = 8
+            public static let footerPageIndicatorDotSpacing: CGFloat = 10
+            public static let footerPageIndicatorInactiveAlpha: CGFloat = 0.5
             public static let debugOverlayMargin: CGFloat = 12
             public static let debugOverlayPadding: CGFloat = 10
         }
     }
 
-    // MARK: ContinueButton (footer primary action button styling)
+    public enum SkillLevelPicker {
+        public enum Figma {
+            public static let itemHeight: CGFloat = 48
+            public static let spacing: CGFloat = 8
+            public static let paddingVertical: CGFloat = 12
+            public static let paddingHorizontal: CGFloat = 16
+            public static let imageLeadingMargin: CGFloat = 16
+            public static let imageTrailingMargin: CGFloat = 16
+            public static let font = UIFont.systemFont(ofSize: 17, weight: .regular)
+            public static let kern: CGFloat = -0.44
+            public static let selectedStrokeWidth: CGFloat = 2
+        }
+
+        public enum Experimental {
+            public static let itemHeight: CGFloat = 56
+            public static let spacing: CGFloat = 12
+            public static let paddingVertical: CGFloat = 16
+            public static let paddingHorizontal: CGFloat = 20
+            public static let imageLeadingMargin: CGFloat = 20
+            public static let imageTrailingMargin: CGFloat = 20
+            public static let font = roundedFont(size: 18, weight: .medium)
+            public static let kern: CGFloat = -0.2
+            public static let selectedStrokeWidth: CGFloat = 3
+        }
+    }
+
+    public enum AccoladeCard {
+        public enum Figma {
+            public static let centerStackSpacing: CGFloat = 4
+            public static let titleRowSpacing: CGFloat = 2
+            public static let mainStackSpacing: CGFloat = -12
+            public static let iconSize: CGFloat = 16
+        }
+
+        public enum Experimental {
+            public static let centerStackSpacing: CGFloat = 8
+            public static let titleRowSpacing: CGFloat = 6
+            public static let mainStackSpacing: CGFloat = 4
+            public static let iconSize: CGFloat = 20
+        }
+    }
+
+    public enum MainContent {
+        public enum Figma {
+            public static let verticalOffsetStart: CGFloat = 320
+            public static let verticalOffsetEnd: CGFloat = 50
+            public static let appearPhaseEndY: CGFloat = 135
+            public static let scrollPhaseStartY: CGFloat = 320
+            public static let expandableTranslationY: CGFloat = 100
+            public static let expandableLabelTranslationY: CGFloat = 100
+            public static let labelScaleStart: CGFloat = 0.5
+            public static let labelScaleStartFactor: CGFloat = 0.6
+        }
+
+        public enum Experimental {
+            public static let verticalOffsetStart: CGFloat = 320
+            public static let verticalOffsetEnd: CGFloat = 50
+            public static let appearPhaseEndY: CGFloat = 135
+            public static let scrollPhaseStartY: CGFloat = 320
+            public static let expandableTranslationY: CGFloat = 100
+            public static let expandableLabelTranslationY: CGFloat = 100
+            public static let labelScaleStart: CGFloat = 0.5
+            public static let labelScaleStartFactor: CGFloat = 0.6
+        }
+    }
+
+    public enum WelcomePage {
+        public enum Figma {
+            public static let titleScaleMin: CGFloat = 0.92
+            public static let titleScaleMax: CGFloat = 1
+            public static let subtitleFadeStart: CGFloat = 0.3
+            public static let subtitleFadeEnd: CGFloat = 1
+        }
+
+        public enum Experimental {
+            public static let titleScaleMin: CGFloat = 0.88
+            public static let titleScaleMax: CGFloat = 1.02
+            public static let subtitleFadeStart: CGFloat = 0.2
+            public static let subtitleFadeEnd: CGFloat = 1
+        }
+    }
+
+    public enum SkillPickerFace {
+        public enum Figma {
+            public static let bounceDuration: TimeInterval = 0.6
+            public static let bounceDamping: CGFloat = 0.45
+            public static let bounceVelocity: CGFloat = 0.8
+            public static let rotationAngle: CGFloat = .pi / 18
+        }
+
+        public enum Experimental {
+            public static let bounceDuration: TimeInterval = 0.8
+            public static let bounceDamping: CGFloat = 0.5
+            public static let bounceVelocity: CGFloat = 1.2
+            public static let rotationAngle: CGFloat = .pi / 12
+        }
+    }
+
+    public enum AppearAnimation {
+        public enum Figma {
+            public static let footerStartT: CGFloat = 0.25
+            public static let footerEndT: CGFloat = 1
+        }
+
+        public enum Experimental {
+            public static let footerStartT: CGFloat = 0.2
+            public static let footerEndT: CGFloat = 1
+        }
+    }
+
+    public enum TextStyle {
+        public enum Figma {
+            public static let largeTitleKern: CGFloat = 34 * 0.02
+            public static let largeTitleLineHeightMultiple: CGFloat = 38 / 34
+            public static let title2Kern: CGFloat = 22 * 0.02
+            public static let accoladeTitleKern: CGFloat = 13 * 0.02
+            public static let accoladeSubtitleKern: CGFloat = 13 * 0.02
+            public static let accoladeSubtitleLineHeightMultiple: CGFloat = 1
+
+            public static let continueButtonLineHeightMultiple: CGFloat = 1
+        }
+
+        public enum Experimental {
+            public static let largeTitleKern: CGFloat = 38 * 0.03
+            public static let largeTitleLineHeightMultiple: CGFloat = 1.2
+            public static let title2Kern: CGFloat = 22 * 0.03
+            public static let accoladeTitleKern: CGFloat = 14 * 0.02
+            public static let accoladeSubtitleKern: CGFloat = 14 * 0.02
+            public static let accoladeSubtitleLineHeightMultiple: CGFloat = 1.15
+
+            public static let continueButtonLineHeightMultiple: CGFloat = 1.1
+        }
+    }
 
     public enum ContinueButton {
         public enum Figma {
             public static let titleFont = UIFont.systemFont(ofSize: 17, weight: .semibold)
+            public static let titleKern: CGFloat = -0.44
             public static let cornerRadius: CGFloat = 14
+            public static let disabledAlpha: CGFloat = 0.3
         }
 
         public enum Experimental {
-            public static let titleFont = UIFont.systemFont(ofSize: 18, weight: .semibold)
-            public static let cornerRadius: CGFloat = 16
+            public static let titleFont = roundedFont(size: 19, weight: .bold)
+            public static let titleKern: CGFloat = -0.2
+            public static let cornerRadius: CGFloat = 28
+            public static let disabledAlpha: CGFloat = 0.4
         }
     }
-
-    // MARK: Icon (absolute icon sizes per variant)
 
     public enum Icon {
         public enum Figma {
@@ -168,19 +323,15 @@ public enum AppStyle {
         }
     }
 
-    // MARK: Motion (absolute animation values per variant)
-
     public enum Motion {
         public enum Figma {
             public static let duration: TimeInterval = 0.4
             public static let springDamping: CGFloat = 0.8
-            public static let reducedMotionScale: CGFloat = 0.5
         }
 
         public enum Experimental {
-            public static let duration: TimeInterval = 0.35
-            public static let springDamping: CGFloat = 0.85
-            public static let reducedMotionScale: CGFloat = 0.5
+            public static let duration: TimeInterval = 0.3
+            public static let springDamping: CGFloat = 0.75
         }
     }
 }

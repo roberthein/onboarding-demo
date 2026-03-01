@@ -1,14 +1,16 @@
 import UIKit
 
 public final class AccoladesPageViewController: UIViewController {
+    static let defaultAccolades: [Accolade] = [
+        Accolade(icon: .trophy, title: LocalizedStrings.Accolades.provenQuality, subtitle: LocalizedStrings.Accolades.provenQualitySubtitle),
+        Accolade(icon: .bolt, title: LocalizedStrings.Accolades.performanceFirst, subtitle: LocalizedStrings.Accolades.performanceFirstSubtitle),
+        Accolade(icon: .palette, title: LocalizedStrings.Accolades.beautifulDesign, subtitle: LocalizedStrings.Accolades.beautifulDesignSubtitle),
+    ]
+
     private let themeProvider: ThemeProviding
     private var themeTask: Task<Void, Never>?
 
-    private let accolades: [Accolade] = [
-        Accolade(icon: .trophy, title: "Proven Quality", subtitle: "Built with industry best practices and attention to detail."),
-        Accolade(icon: .bolt, title: "Performance First", subtitle: "Optimized for speed and responsiveness."),
-        Accolade(icon: .palette, title: "Beautiful Design", subtitle: "Thoughtful UX and cohesive visual language."),
-    ]
+    private var accolades: [Accolade] { Self.defaultAccolades }
 
     private var contentView: AccoladesPageView {
         view as! AccoladesPageView

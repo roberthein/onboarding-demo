@@ -3,6 +3,7 @@ import UIKit
 public final class CongratulationsPageView: ScrollablePageView {
     private lazy var titleLabel: UILabel = {
         let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
         label.textAlignment = .center
         label.numberOfLines = 1
         return label
@@ -10,15 +11,16 @@ public final class CongratulationsPageView: ScrollablePageView {
 
     private lazy var subtitleLabel: UILabel = {
         let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
         label.textAlignment = .center
         label.numberOfLines = 4
         return label
     }()
 
     private lazy var stack: UIStackView = {
-        let stackView = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
+        let stackView = UIStackView()
         stackView.axis = .vertical
-        stackView.spacing = Theme.figma.spacing.item
+        stackView.spacing = 0
         stackView.alignment = .center
         stackView.translatesAutoresizingMaskIntoConstraints = false
         return stackView
@@ -26,15 +28,17 @@ public final class CongratulationsPageView: ScrollablePageView {
 
     override public init(frame: CGRect) {
         super.init(frame: frame)
-        setupContent()
+        buildView()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        setupContent()
+        buildView()
     }
 
-    private func setupContent() {
+    private func buildView() {
+        stack.addArrangedSubview(titleLabel)
+        stack.addArrangedSubview(subtitleLabel)
         centeredContentView.addSubview(stack)
         NSLayoutConstraint.activate([
             stack.topAnchor.constraint(equalTo: centeredContentView.topAnchor),
@@ -56,6 +60,7 @@ public final class CongratulationsPageView: ScrollablePageView {
 
 extension CongratulationsPageView: PageContentView {
     public func apply(theme: Theme) {
+        stack.spacing = theme.spacing.item
         titleLabel.applyTitleStyle(theme: theme)
         subtitleLabel.applySubtitleStyle(theme: theme)
     }

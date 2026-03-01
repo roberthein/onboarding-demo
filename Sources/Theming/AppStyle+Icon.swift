@@ -1,7 +1,5 @@
 import UIKit
 
-// MARK: - Icon Cases
-
 public enum AppIcon: CaseIterable, Sendable {
     case trophy
     case bolt
@@ -10,6 +8,7 @@ public enum AppIcon: CaseIterable, Sendable {
     case sunMax
     case moon
     case ant
+    case appleLogo
 
     public var emoji: String {
         switch self {
@@ -20,6 +19,7 @@ public enum AppIcon: CaseIterable, Sendable {
         case .sunMax: return "☀️"
         case .moon: return "🌙"
         case .ant: return "🐜"
+        case .appleLogo: return ""
         }
     }
 
@@ -32,6 +32,7 @@ public enum AppIcon: CaseIterable, Sendable {
         case .sunMax: return "sun.max"
         case .moon: return "moon"
         case .ant: return "ant"
+        case .appleLogo: return "apple.logo"
         }
     }
 

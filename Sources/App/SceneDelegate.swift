@@ -1,6 +1,5 @@
 import UIKit
 
-/// Scene delegate. Manages window lifecycle and connects the UI to `Root`'s onboarding container.
 @MainActor
 public final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 

@@ -9,6 +9,6 @@ public final class CongratulationsViewModel {
     }
 
     public var skillLevel: SkillLevel? { onboardingViewModel?.skillLevel }
-    public var titleText: String { "Congratulations!" }
-    public var subtitleText: String { skillLevel?.congratulationSubtitle ?? "Let's get started!" }
+    public var titleText: String { LocalizedStrings.Congratulations.title }
+    public var subtitleText: String { skillLevel?.congratulationSubtitle ?? LocalizedStrings.Congratulations.defaultSubtitle }
 }

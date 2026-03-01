@@ -5,21 +5,46 @@ public enum Theme: String, CaseIterable, Sendable {
     case experimental
 }
 
-// MARK: - Theme Identity
-
 extension Theme {
     public var id: String { rawValue }
+    public static var fallback: Theme { .figma }
 }
-
-// MARK: - Theme.Font (semantic typography)
 
 public struct ThemeFonts: Sendable {
     let theme: Theme
+
+    public var largeTitle: UIFont {
+        switch theme {
+        case .figma: return AppStyle.Font.Figma.largeTitle
+        case .experimental: return AppStyle.Font.Experimental.largeTitle
+        }
+    }
 
     public var title1: UIFont {
         switch theme {
         case .figma: return AppStyle.Font.Figma.title1
         case .experimental: return AppStyle.Font.Experimental.title1
+        }
+    }
+
+    public var title2: UIFont {
+        switch theme {
+        case .figma: return AppStyle.Font.Figma.title2
+        case .experimental: return AppStyle.Font.Experimental.title2
+        }
+    }
+
+    public var accoladeTitle: UIFont {
+        switch theme {
+        case .figma: return AppStyle.Font.Figma.accoladeTitle
+        case .experimental: return AppStyle.Font.Experimental.accoladeTitle
+        }
+    }
+
+    public var accoladeSubtitle: UIFont {
+        switch theme {
+        case .figma: return AppStyle.Font.Figma.accoladeSubtitle
+        case .experimental: return AppStyle.Font.Experimental.accoladeSubtitle
         }
     }
 
@@ -56,8 +81,6 @@ extension Theme {
     public var font: ThemeFonts { ThemeFonts(theme: self) }
 }
 
-// MARK: - Theme.Color (semantic colors)
-
 public struct ThemeColors: Sendable {
     let theme: Theme
 
@@ -65,6 +88,20 @@ public struct ThemeColors: Sendable {
         switch theme {
         case .figma: return AppStyle.Color.Figma.primaryBackground
         case .experimental: return AppStyle.Color.Experimental.primaryBackground
+        }
+    }
+
+    public var gradientPrimaryBackground: UIColor {
+        switch theme {
+        case .figma: return AppStyle.Color.Figma.gradientPrimary
+        case .experimental: return AppStyle.Color.Experimental.primaryBackground
+        }
+    }
+
+    public var gradientSecondaryBackground: UIColor {
+        switch theme {
+        case .figma: return AppStyle.Color.Figma.gradientSecondary
+        case .experimental: return AppStyle.Color.Experimental.gradientSecondary
         }
     }
 
@@ -96,12 +133,7 @@ public struct ThemeColors: Sendable {
         }
     }
 
-    public var primaryTint: UIColor {
-        switch theme {
-        case .figma: return AppStyle.Color.Figma.primaryTint
-        case .experimental: return AppStyle.Color.Experimental.primaryTint
-        }
-    }
+    public var primaryTint: UIColor { accent }
 
     public var secondaryTint: UIColor {
         switch theme {
@@ -135,8 +167,6 @@ public struct ThemeColors: Sendable {
 extension Theme {
     public var color: ThemeColors { ThemeColors(theme: self) }
 }
-
-// MARK: - Theme.Margin (semantic margins)
 
 public struct ThemeMargins: Sendable {
     let theme: Theme
@@ -187,8 +217,6 @@ public struct ThemeMargins: Sendable {
 extension Theme {
     public var margin: ThemeMargins { ThemeMargins(theme: self) }
 }
-
-// MARK: - Theme.Spacing (semantic spacing)
 
 public struct ThemeSpacing: Sendable {
     let theme: Theme
@@ -268,8 +296,6 @@ extension Theme {
     public var spacing: ThemeSpacing { ThemeSpacing(theme: self) }
 }
 
-// MARK: - Theme.Radius (semantic corner radii)
-
 public struct ThemeRadius: Sendable {
     let theme: Theme
 
@@ -298,8 +324,6 @@ public struct ThemeRadius: Sendable {
 extension Theme {
     public var radius: ThemeRadius { ThemeRadius(theme: self) }
 }
-
-// MARK: - Theme.Layout (semantic layout dimensions)
 
 public struct ThemeLayout: Sendable {
     let theme: Theme
@@ -352,13 +376,400 @@ public struct ThemeLayout: Sendable {
         case .experimental: return AppStyle.Layout.Experimental.footerSlideOffset
         }
     }
+
+    public var footerWelcomeLabelTopMargin: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.Layout.Figma.footerWelcomeLabelTopMargin
+        case .experimental: return AppStyle.Layout.Experimental.footerWelcomeLabelTopMargin
+        }
+    }
+
+    public var footerWelcomeLabelHeight: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.Layout.Figma.footerWelcomeLabelHeight
+        case .experimental: return AppStyle.Layout.Experimental.footerWelcomeLabelHeight
+        }
+    }
+
+    public var footerWelcomeLabelMarginToButton: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.Layout.Figma.footerWelcomeLabelMarginToButton
+        case .experimental: return AppStyle.Layout.Experimental.footerWelcomeLabelMarginToButton
+        }
+    }
+
+    public var footerPageIndicatorTopMargin: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.Layout.Figma.footerPageIndicatorTopMargin
+        case .experimental: return AppStyle.Layout.Experimental.footerPageIndicatorTopMargin
+        }
+    }
+
+    public var footerPageIndicatorDotSize: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.Layout.Figma.footerPageIndicatorDotSize
+        case .experimental: return AppStyle.Layout.Experimental.footerPageIndicatorDotSize
+        }
+    }
+
+    public var footerPageIndicatorDotSpacing: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.Layout.Figma.footerPageIndicatorDotSpacing
+        case .experimental: return AppStyle.Layout.Experimental.footerPageIndicatorDotSpacing
+        }
+    }
+
+    public var footerPageIndicatorInactiveAlpha: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.Layout.Figma.footerPageIndicatorInactiveAlpha
+        case .experimental: return AppStyle.Layout.Experimental.footerPageIndicatorInactiveAlpha
+        }
+    }
+
+    public var footerTotalHeight: CGFloat {
+        footerWelcomeLabelTopMargin + footerWelcomeLabelHeight + footerWelcomeLabelMarginToButton +
+        footerButtonHeight + footerPageIndicatorTopMargin + footerPageIndicatorDotSize
+    }
 }
 
 extension Theme {
     public var layout: ThemeLayout { ThemeLayout(theme: self) }
 }
 
-// MARK: - Theme.ContinueButton (footer button styling)
+public struct ThemeTextStyle: Sendable {
+    let theme: Theme
+
+    public var largeTitleKern: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.TextStyle.Figma.largeTitleKern
+        case .experimental: return AppStyle.TextStyle.Experimental.largeTitleKern
+        }
+    }
+
+    public var largeTitleLineHeightMultiple: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.TextStyle.Figma.largeTitleLineHeightMultiple
+        case .experimental: return AppStyle.TextStyle.Experimental.largeTitleLineHeightMultiple
+        }
+    }
+
+    public var title2Kern: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.TextStyle.Figma.title2Kern
+        case .experimental: return AppStyle.TextStyle.Experimental.title2Kern
+        }
+    }
+
+    public var accoladeTitleKern: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.TextStyle.Figma.accoladeTitleKern
+        case .experimental: return AppStyle.TextStyle.Experimental.accoladeTitleKern
+        }
+    }
+
+    public var accoladeSubtitleKern: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.TextStyle.Figma.accoladeSubtitleKern
+        case .experimental: return AppStyle.TextStyle.Experimental.accoladeSubtitleKern
+        }
+    }
+
+    public var accoladeSubtitleLineHeightMultiple: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.TextStyle.Figma.accoladeSubtitleLineHeightMultiple
+        case .experimental: return AppStyle.TextStyle.Experimental.accoladeSubtitleLineHeightMultiple
+        }
+    }
+
+    public var continueButtonLineHeightMultiple: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.TextStyle.Figma.continueButtonLineHeightMultiple
+        case .experimental: return AppStyle.TextStyle.Experimental.continueButtonLineHeightMultiple
+        }
+    }
+}
+
+extension Theme {
+    public var textStyle: ThemeTextStyle { ThemeTextStyle(theme: self) }
+}
+
+public struct ThemeSkillLevelPicker: Sendable {
+    let theme: Theme
+
+    public var itemHeight: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.SkillLevelPicker.Figma.itemHeight
+        case .experimental: return AppStyle.SkillLevelPicker.Experimental.itemHeight
+        }
+    }
+
+    public var spacing: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.SkillLevelPicker.Figma.spacing
+        case .experimental: return AppStyle.SkillLevelPicker.Experimental.spacing
+        }
+    }
+
+    public var paddingVertical: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.SkillLevelPicker.Figma.paddingVertical
+        case .experimental: return AppStyle.SkillLevelPicker.Experimental.paddingVertical
+        }
+    }
+
+    public var paddingHorizontal: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.SkillLevelPicker.Figma.paddingHorizontal
+        case .experimental: return AppStyle.SkillLevelPicker.Experimental.paddingHorizontal
+        }
+    }
+
+    public var imageLeadingMargin: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.SkillLevelPicker.Figma.imageLeadingMargin
+        case .experimental: return AppStyle.SkillLevelPicker.Experimental.imageLeadingMargin
+        }
+    }
+
+    public var imageTrailingMargin: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.SkillLevelPicker.Figma.imageTrailingMargin
+        case .experimental: return AppStyle.SkillLevelPicker.Experimental.imageTrailingMargin
+        }
+    }
+
+    public var font: UIFont {
+        switch theme {
+        case .figma: return AppStyle.SkillLevelPicker.Figma.font
+        case .experimental: return AppStyle.SkillLevelPicker.Experimental.font
+        }
+    }
+
+    public var kern: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.SkillLevelPicker.Figma.kern
+        case .experimental: return AppStyle.SkillLevelPicker.Experimental.kern
+        }
+    }
+
+    public var selectedStrokeWidth: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.SkillLevelPicker.Figma.selectedStrokeWidth
+        case .experimental: return AppStyle.SkillLevelPicker.Experimental.selectedStrokeWidth
+        }
+    }
+}
+
+extension Theme {
+    public var skillLevelPicker: ThemeSkillLevelPicker { ThemeSkillLevelPicker(theme: self) }
+}
+
+public struct ThemeAccoladeCard: Sendable {
+    let theme: Theme
+
+    public var centerStackSpacing: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.AccoladeCard.Figma.centerStackSpacing
+        case .experimental: return AppStyle.AccoladeCard.Experimental.centerStackSpacing
+        }
+    }
+
+    public var titleRowSpacing: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.AccoladeCard.Figma.titleRowSpacing
+        case .experimental: return AppStyle.AccoladeCard.Experimental.titleRowSpacing
+        }
+    }
+
+    public var mainStackSpacing: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.AccoladeCard.Figma.mainStackSpacing
+        case .experimental: return AppStyle.AccoladeCard.Experimental.mainStackSpacing
+        }
+    }
+
+    public var iconSize: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.AccoladeCard.Figma.iconSize
+        case .experimental: return AppStyle.AccoladeCard.Experimental.iconSize
+        }
+    }
+}
+
+extension Theme {
+    public var accoladeCard: ThemeAccoladeCard { ThemeAccoladeCard(theme: self) }
+}
+
+public struct ThemeMainContent: Sendable {
+    let theme: Theme
+
+    public var verticalOffsetStart: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.MainContent.Figma.verticalOffsetStart
+        case .experimental: return AppStyle.MainContent.Experimental.verticalOffsetStart
+        }
+    }
+
+    public var verticalOffsetEnd: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.MainContent.Figma.verticalOffsetEnd
+        case .experimental: return AppStyle.MainContent.Experimental.verticalOffsetEnd
+        }
+    }
+
+    public var appearPhaseEndY: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.MainContent.Figma.appearPhaseEndY
+        case .experimental: return AppStyle.MainContent.Experimental.appearPhaseEndY
+        }
+    }
+
+    public var scrollPhaseStartY: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.MainContent.Figma.scrollPhaseStartY
+        case .experimental: return AppStyle.MainContent.Experimental.scrollPhaseStartY
+        }
+    }
+
+    public var expandableTranslationY: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.MainContent.Figma.expandableTranslationY
+        case .experimental: return AppStyle.MainContent.Experimental.expandableTranslationY
+        }
+    }
+
+    public var expandableLabelTranslationY: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.MainContent.Figma.expandableLabelTranslationY
+        case .experimental: return AppStyle.MainContent.Experimental.expandableLabelTranslationY
+        }
+    }
+
+    public var labelScaleStart: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.MainContent.Figma.labelScaleStart
+        case .experimental: return AppStyle.MainContent.Experimental.labelScaleStart
+        }
+    }
+
+    public var labelScaleStartFactor: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.MainContent.Figma.labelScaleStartFactor
+        case .experimental: return AppStyle.MainContent.Experimental.labelScaleStartFactor
+        }
+    }
+}
+
+extension Theme {
+    public var mainContent: ThemeMainContent { ThemeMainContent(theme: self) }
+}
+
+public struct ThemeWelcomePage: Sendable {
+    let theme: Theme
+
+    public var titleScaleMin: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.WelcomePage.Figma.titleScaleMin
+        case .experimental: return AppStyle.WelcomePage.Experimental.titleScaleMin
+        }
+    }
+
+    public var titleScaleMax: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.WelcomePage.Figma.titleScaleMax
+        case .experimental: return AppStyle.WelcomePage.Experimental.titleScaleMax
+        }
+    }
+
+    public var subtitleFadeStart: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.WelcomePage.Figma.subtitleFadeStart
+        case .experimental: return AppStyle.WelcomePage.Experimental.subtitleFadeStart
+        }
+    }
+
+    public var subtitleFadeEnd: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.WelcomePage.Figma.subtitleFadeEnd
+        case .experimental: return AppStyle.WelcomePage.Experimental.subtitleFadeEnd
+        }
+    }
+}
+
+extension Theme {
+    public var welcomePage: ThemeWelcomePage { ThemeWelcomePage(theme: self) }
+}
+
+public struct ThemeSkillPickerFace: Sendable {
+    let theme: Theme
+
+    public var bounceDuration: TimeInterval {
+        switch theme {
+        case .figma: return AppStyle.SkillPickerFace.Figma.bounceDuration
+        case .experimental: return AppStyle.SkillPickerFace.Experimental.bounceDuration
+        }
+    }
+
+    public var bounceDamping: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.SkillPickerFace.Figma.bounceDamping
+        case .experimental: return AppStyle.SkillPickerFace.Experimental.bounceDamping
+        }
+    }
+
+    public var bounceVelocity: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.SkillPickerFace.Figma.bounceVelocity
+        case .experimental: return AppStyle.SkillPickerFace.Experimental.bounceVelocity
+        }
+    }
+
+    public var rotationAngle: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.SkillPickerFace.Figma.rotationAngle
+        case .experimental: return AppStyle.SkillPickerFace.Experimental.rotationAngle
+        }
+    }
+}
+
+extension Theme {
+    public var skillPickerFace: ThemeSkillPickerFace { ThemeSkillPickerFace(theme: self) }
+}
+
+public struct ThemeAppearAnimation: Sendable {
+    let theme: Theme
+
+    public var footerStartT: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.AppearAnimation.Figma.footerStartT
+        case .experimental: return AppStyle.AppearAnimation.Experimental.footerStartT
+        }
+    }
+
+    public var footerEndT: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.AppearAnimation.Figma.footerEndT
+        case .experimental: return AppStyle.AppearAnimation.Experimental.footerEndT
+        }
+    }
+}
+
+extension Theme {
+    public var appearAnimation: ThemeAppearAnimation { ThemeAppearAnimation(theme: self) }
+}
+
+public struct ThemeSkillPickerPage: Sendable {
+    let theme: Theme
+
+    public var horizontalMargin: CGFloat {
+        theme.layout.footerHorizontalPadding
+    }
+}
+
+extension Theme {
+    public var skillPickerPage: ThemeSkillPickerPage { ThemeSkillPickerPage(theme: self) }
+}
+
 
 public struct ThemeContinueButton: Sendable {
     let theme: Theme
@@ -370,10 +781,24 @@ public struct ThemeContinueButton: Sendable {
         }
     }
 
+    public var titleKern: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.ContinueButton.Figma.titleKern
+        case .experimental: return AppStyle.ContinueButton.Experimental.titleKern
+        }
+    }
+
     public var cornerRadius: CGFloat {
         switch theme {
         case .figma: return AppStyle.ContinueButton.Figma.cornerRadius
         case .experimental: return AppStyle.ContinueButton.Experimental.cornerRadius
+        }
+    }
+
+    public var disabledAlpha: CGFloat {
+        switch theme {
+        case .figma: return AppStyle.ContinueButton.Figma.disabledAlpha
+        case .experimental: return AppStyle.ContinueButton.Experimental.disabledAlpha
         }
     }
 }
@@ -381,8 +806,6 @@ public struct ThemeContinueButton: Sendable {
 extension Theme {
     public var continueButton: ThemeContinueButton { ThemeContinueButton(theme: self) }
 }
-
-// MARK: - Theme.Icon (semantic icon sizes)
 
 public struct ThemeIcon: Sendable {
     let theme: Theme
@@ -420,8 +843,6 @@ extension Theme {
     public var icon: ThemeIcon { ThemeIcon(theme: self) }
 }
 
-// MARK: - Theme.Motion (semantic animation values)
-
 public struct ThemeMotion: Sendable {
     let theme: Theme
 
@@ -438,20 +859,11 @@ public struct ThemeMotion: Sendable {
         case .experimental: return AppStyle.Motion.Experimental.springDamping
         }
     }
-
-    public var reducedMotionScale: CGFloat {
-        switch theme {
-        case .figma: return AppStyle.Motion.Figma.reducedMotionScale
-        case .experimental: return AppStyle.Motion.Experimental.reducedMotionScale
-        }
-    }
 }
 
 extension Theme {
     public var motion: ThemeMotion { ThemeMotion(theme: self) }
 }
-
-// MARK: - Convenience aliases (backward compatible with existing property names)
 
 extension Theme {
     public var background: UIColor { color.primaryBackground }
@@ -472,5 +884,4 @@ extension Theme {
 
     public var animationDuration: TimeInterval { motion.duration }
     public var springDamping: CGFloat { motion.springDamping }
-    public var reducedMotionScale: CGFloat { motion.reducedMotionScale }
 }

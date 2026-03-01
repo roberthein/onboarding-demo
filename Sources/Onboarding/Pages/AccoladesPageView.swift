@@ -6,7 +6,7 @@ public final class AccoladesPageView: ScrollablePageView {
     private lazy var stack: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .vertical
-        stackView.spacing = Theme.figma.spacing.item
+        stackView.spacing = 0
         stackView.alignment = .fill
         stackView.translatesAutoresizingMaskIntoConstraints = false
         return stackView
@@ -17,34 +17,21 @@ public final class AccoladesPageView: ScrollablePageView {
     public init(accolades: [Accolade]) {
         self.accolades = accolades
         super.init(frame: .zero)
-        setupContent()
+        buildView()
     }
 
     required init?(coder: NSCoder) {
         accolades = []
         super.init(coder: coder)
-        setupContent()
+        buildView()
     }
 
-    private func setupContent() {
-        accolades.forEach { accolade in
-            let card = AccoladeCardView()
-            card.configure(accolade: accolade)
-            accoladeViews.append(card)
-            stack.addArrangedSubview(card)
-        }
-        centeredContentView.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: centeredContentView.topAnchor),
-            stack.leadingAnchor.constraint(equalTo: centeredContentView.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: centeredContentView.trailingAnchor),
-            stack.bottomAnchor.constraint(equalTo: centeredContentView.bottomAnchor),
-        ])
-    }
+    private func buildView() {}
 }
 
 extension AccoladesPageView: PageContentView {
     public func apply(theme: Theme) {
+        stack.spacing = theme.spacing.item
         accoladeViews.forEach { $0.apply(theme: theme) }
     }
 }

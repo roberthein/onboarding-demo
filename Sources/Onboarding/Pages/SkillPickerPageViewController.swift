@@ -31,6 +31,7 @@ public final class SkillPickerPageViewController: UIViewController {
     override public func loadView() {
         let contentView = SkillPickerPageView()
         contentView.onPickerSelect = { [weak self] level in
+            self?.contentView.setSelected(level, animate: true)
             self?.viewModel.selectSkillLevel(level)
             self?.onSelectSkill?(level)
         }
