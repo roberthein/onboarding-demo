@@ -3,24 +3,6 @@ import UIKit
 public class ScrollablePageView: UIView {
     private var isDebugModeEnabled: Bool = false
 
-    private lazy var pageDebugOverlay: UIView = {
-        let overlay = UIView()
-        overlay.translatesAutoresizingMaskIntoConstraints = false
-        overlay.isHidden = true
-        overlay.isUserInteractionEnabled = false
-        overlay.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.12)
-        return overlay
-    }()
-
-    private lazy var scrollViewDebugOverlay: UIView = {
-        let overlay = UIView()
-        overlay.translatesAutoresizingMaskIntoConstraints = false
-        overlay.isHidden = true
-        overlay.isUserInteractionEnabled = false
-        overlay.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.12)
-        return overlay
-    }()
-
     public lazy var scrollView: UIScrollView = {
         let scrollView = UIScrollView()
         scrollView.showsVerticalScrollIndicator = false
@@ -55,15 +37,6 @@ public class ScrollablePageView: UIView {
         return spacer
     }()
 
-    private lazy var contentDebugOverlay: UIView = {
-        let overlay = UIView()
-        overlay.translatesAutoresizingMaskIntoConstraints = false
-        overlay.isHidden = true
-        overlay.isUserInteractionEnabled = false
-        overlay.backgroundColor = UIColor.systemOrange.withAlphaComponent(0.15)
-        return overlay
-    }()
-
     public lazy var centeredContentView: UIView = {
         let contentView = UIView()
         contentView.translatesAutoresizingMaskIntoConstraints = false
@@ -89,9 +62,9 @@ public class ScrollablePageView: UIView {
         contentStack.addArrangedSubview(topSpacer)
         contentStack.addArrangedSubview(centeredContentView)
         contentStack.addArrangedSubview(bottomSpacer)
-        addSubview(pageDebugOverlay)
-        addSubview(scrollViewDebugOverlay)
-        centeredContentView.addSubview(contentDebugOverlay)
+        installDebugOverlay(tintColor: UIColor.systemGreen.withAlphaComponent(0.12))
+        scrollView.installDebugOverlay(tintColor: UIColor.systemBlue.withAlphaComponent(0.12))
+        centeredContentView.installDebugOverlay(tintColor: UIColor.systemOrange.withAlphaComponent(0.15))
         scrollView.backgroundColor = .clear
         centeredContentView.backgroundColor = .clear
         let contentGuide = scrollView.contentLayoutGuide
@@ -102,18 +75,6 @@ public class ScrollablePageView: UIView {
             scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            pageDebugOverlay.topAnchor.constraint(equalTo: topAnchor),
-            pageDebugOverlay.leadingAnchor.constraint(equalTo: leadingAnchor),
-            pageDebugOverlay.trailingAnchor.constraint(equalTo: trailingAnchor),
-            pageDebugOverlay.bottomAnchor.constraint(equalTo: bottomAnchor),
-            scrollViewDebugOverlay.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            scrollViewDebugOverlay.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
-            scrollViewDebugOverlay.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            scrollViewDebugOverlay.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            contentDebugOverlay.topAnchor.constraint(equalTo: centeredContentView.topAnchor),
-            contentDebugOverlay.leadingAnchor.constraint(equalTo: centeredContentView.leadingAnchor),
-            contentDebugOverlay.trailingAnchor.constraint(equalTo: centeredContentView.trailingAnchor),
-            contentDebugOverlay.bottomAnchor.constraint(equalTo: centeredContentView.bottomAnchor),
             contentStack.topAnchor.constraint(equalTo: contentGuide.topAnchor),
             contentStack.leadingAnchor.constraint(equalTo: contentGuide.leadingAnchor),
             contentStack.trailingAnchor.constraint(equalTo: contentGuide.trailingAnchor),
@@ -128,8 +89,8 @@ public class ScrollablePageView: UIView {
         backgroundColor = .clear
         scrollView.backgroundColor = .clear
         centeredContentView.backgroundColor = .clear
-        pageDebugOverlay.isHidden = !enabled
-        scrollViewDebugOverlay.isHidden = !enabled
-        contentDebugOverlay.isHidden = !enabled
+        setDebugOverlayVisible(enabled)
+        scrollView.setDebugOverlayVisible(enabled)
+        centeredContentView.setDebugOverlayVisible(enabled)
     }
 }

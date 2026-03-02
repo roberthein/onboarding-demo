@@ -27,15 +27,6 @@ public final class PagedScrollView: UIView {
         return scrollView
     }()
 
-    private lazy var debugOverlay: UIView = {
-        let overlay = UIView()
-        overlay.translatesAutoresizingMaskIntoConstraints = false
-        overlay.isHidden = true
-        overlay.isUserInteractionEnabled = false
-        overlay.backgroundColor = UIColor.systemPurple.withAlphaComponent(0.12)
-        return overlay
-    }()
-
     private lazy var contentStack: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .horizontal
@@ -53,7 +44,7 @@ public final class PagedScrollView: UIView {
     private func buildView() {
         backgroundColor = .clear
         addSubview(scrollView)
-        addSubview(debugOverlay)
+        installDebugOverlay(tintColor: UIColor.systemPurple.withAlphaComponent(0.12))
         scrollView.addSubview(contentStack)
         let contentGuide = scrollView.contentLayoutGuide
         let frameGuide = scrollView.frameLayoutGuide
@@ -62,10 +53,6 @@ public final class PagedScrollView: UIView {
             scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            debugOverlay.topAnchor.constraint(equalTo: topAnchor),
-            debugOverlay.leadingAnchor.constraint(equalTo: leadingAnchor),
-            debugOverlay.trailingAnchor.constraint(equalTo: trailingAnchor),
-            debugOverlay.bottomAnchor.constraint(equalTo: bottomAnchor),
             contentStack.topAnchor.constraint(equalTo: contentGuide.topAnchor),
             contentStack.leadingAnchor.constraint(equalTo: contentGuide.leadingAnchor),
             contentStack.trailingAnchor.constraint(equalTo: contentGuide.trailingAnchor),
@@ -78,7 +65,7 @@ public final class PagedScrollView: UIView {
         isDebugModeEnabled = enabled
         backgroundColor = .clear
         scrollView.backgroundColor = .clear
-        debugOverlay.isHidden = !enabled
+        setDebugOverlayVisible(enabled)
     }
 
     required init?(coder: NSCoder) {

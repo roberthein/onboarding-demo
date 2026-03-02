@@ -7,15 +7,6 @@ public final class MainContentView: UIView {
     private var verticalOffsetProgress: CGFloat = -1
     private var appearProgress: CGFloat = 1
 
-    private lazy var debugOverlay: UIView = {
-        let overlay = UIView()
-        overlay.translatesAutoresizingMaskIntoConstraints = false
-        overlay.isHidden = true
-        overlay.isUserInteractionEnabled = false
-        overlay.backgroundColor = UIColor.systemTeal.withAlphaComponent(0.12)
-        return overlay
-    }()
-
     private lazy var firstImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -109,7 +100,7 @@ public final class MainContentView: UIView {
         contentStack.clipsToBounds = false
 
         addSubview(contentStack)
-        addSubview(debugOverlay)
+        installDebugOverlay(tintColor: UIColor.systemTeal.withAlphaComponent(0.12))
 
         let card = AccoladeCardView()
         card.configure(accolade: accolade)
@@ -137,10 +128,6 @@ public final class MainContentView: UIView {
             contentStack.trailingAnchor.constraint(equalTo: trailingAnchor),
             contentStack.bottomAnchor.constraint(equalTo: bottomAnchor),
             topSpacer.heightAnchor.constraint(equalTo: bottomSpacer.heightAnchor),
-            debugOverlay.topAnchor.constraint(equalTo: topAnchor),
-            debugOverlay.leadingAnchor.constraint(equalTo: leadingAnchor),
-            debugOverlay.trailingAnchor.constraint(equalTo: trailingAnchor),
-            debugOverlay.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
 
         updateExpandableVisibility(progress: 0)
@@ -186,7 +173,7 @@ public final class MainContentView: UIView {
     }
 
     public func setDebugModeEnabled(_ enabled: Bool) {
-        debugOverlay.isHidden = !enabled
+        setDebugOverlayVisible(enabled)
     }
 
     private func updateExpandableVisibility(progress: CGFloat) {
