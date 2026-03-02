@@ -59,18 +59,18 @@ public final class OnboardingContainerViewController: UIViewController {
         addChildViewControllers()
         pageViewControllers.forEach { $0.loadViewIfNeeded() }
         let pageHosts: [UIView] = [mainContentView] + pageViewControllers.compactMap { $0.view }
-        containerView.pagingView.configure(numberOfPages: viewModel.totalPages, pageViews: pageHosts)
-        containerView.pagingView.onScroll = { [weak self] scrollView in
+        containerView.pagedScrollView.configure(numberOfPages: viewModel.totalPages, pageViews: pageHosts)
+        containerView.pagedScrollView.onScroll = { [weak self] scrollView in
             guard let self else { return }
             let contentOffsetX = scrollView.contentOffset.x
             let pageWidth = scrollView.bounds.width > 0
                 ? scrollView.bounds.width
-                : self.containerView.pagingView.bounds.width
+                : self.containerView.pagedScrollView.bounds.width
             guard pageWidth > 0 else { return }
             self.mainContentView.applyScrollTranslation(contentOffsetX: contentOffsetX, pageWidth: pageWidth)
         }
 
-        progressCoordinator.connect(to: containerView.pagingView.progressStream())
+        progressCoordinator.connect(to: containerView.pagedScrollView.progressStream())
 
         setupFooter()
 
@@ -127,7 +127,7 @@ public final class OnboardingContainerViewController: UIViewController {
         containerView.setGradientProgress(-1)
         mainContentView.setAppearProgress(0)
         containerView.footerView.setAppearProgress(0)
-        containerView.pagingView.scrollView.isScrollEnabled = false
+        containerView.pagedScrollView.scrollView.isScrollEnabled = false
 
         let animator = DisplayLinkAnimator(startTime: startTime, duration: duration)
         appearAnimator = animator
@@ -151,7 +151,7 @@ public final class OnboardingContainerViewController: UIViewController {
             if normalizedProgress >= 1 {
                 appearAnimator = nil
                 hasAppearAnimationCompleted = true
-                containerView.pagingView.scrollView.isScrollEnabled = true
+                containerView.pagedScrollView.scrollView.isScrollEnabled = true
                 if let snapshot = lastScrollSnapshot {
                     containerView.setGradientProgress(snapshot.overallProgress)
                     mainContentView.setVerticalOffsetProgress(snapshot.overallProgress)
@@ -170,12 +170,12 @@ public final class OnboardingContainerViewController: UIViewController {
         with coordinator: UIViewControllerTransitionCoordinator
     ) {
         super.viewWillTransition(to: size, with: coordinator)
-        let savedPageIndex = containerView.pagingView.currentPageIndex
+        let savedPageIndex = containerView.pagedScrollView.currentPageIndex
         Task { @MainActor in
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 coordinator.animate(alongsideTransition: { [weak self] _ in
                     self?.view.layoutIfNeeded()
-                    self?.containerView.pagingView.scrollToPage(savedPageIndex, animated: false)
+                    self?.containerView.pagedScrollView.scrollToPage(savedPageIndex, animated: false)
                 }, completion: { [weak self] _ in
                     self?.refreshFooterState(activePageIndex: savedPageIndex)
                     continuation.resume()
@@ -278,7 +278,7 @@ public final class OnboardingContainerViewController: UIViewController {
 
     private func applyDebugMode(isDebugEnabled: Bool, theme: Theme) {
         containerView.setDebugModeEnabled(isDebugEnabled, themeBackground: theme.color.primaryBackground)
-        containerView.pagingView.setDebugModeEnabled(isDebugEnabled)
+        containerView.pagedScrollView.setDebugModeEnabled(isDebugEnabled)
         mainContentView.setDebugModeEnabled(isDebugEnabled)
         pageViewControllers.forEach { viewController in
             (viewController.view as? ScrollablePageView)?.setDebugModeEnabled(isDebugEnabled)
@@ -331,14 +331,14 @@ public final class OnboardingContainerViewController: UIViewController {
     }
 
     private func handleContinueTapped() {
-        let currentIndex = containerView.pagingView.currentPageIndex
+        let currentIndex = containerView.pagedScrollView.currentPageIndex
         let nextIndex = min(currentIndex + 1, OnboardingPage.done.rawValue)
         if nextIndex == OnboardingPage.done.rawValue {
             HapticsManager.success()
         } else {
             HapticsManager.medium()
         }
-        containerView.pagingView.scrollToPage(nextIndex, animated: true)
+        containerView.pagedScrollView.scrollToPage(nextIndex, animated: true)
     }
 
     private func updateFooter(snapshot: ScrollProgressSnapshot) {
@@ -354,7 +354,7 @@ public final class OnboardingContainerViewController: UIViewController {
     }
 
     private func refreshFooterState(activePageIndex: Int? = nil, progressToFourthScreen: CGFloat? = nil, progressToPage1: CGFloat? = nil) {
-        let pageIndex = activePageIndex ?? containerView.pagingView.currentPageIndex
+        let pageIndex = activePageIndex ?? containerView.pagedScrollView.currentPageIndex
         let footer = containerView.footerView
         let theme = lastTheme ?? .figma
 
@@ -386,6 +386,6 @@ public final class OnboardingContainerViewController: UIViewController {
 
         footer.setCurrentPage(pageIndex, totalPages: viewModel.totalPages)
 
-        containerView.pagingView.setLastPageIncluded(viewModel.isLastPageIncluded)
+        containerView.pagedScrollView.setLastPageIncluded(viewModel.isLastPageIncluded)
     }
 }

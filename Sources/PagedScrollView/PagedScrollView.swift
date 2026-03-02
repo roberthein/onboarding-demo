@@ -2,7 +2,7 @@ import UIKit
 
 public typealias ScrollProgressHandler = @Sendable (ScrollProgressSnapshot) -> Void
 
-public final class PagingScrollContainerView: UIView {
+public final class PagedScrollView: UIView {
     private var progressHandler: ScrollProgressHandler?
     private var progressContinuation: AsyncStream<ScrollProgressSnapshot>.Continuation?
     private var numberOfPages: Int = 0
@@ -217,7 +217,7 @@ public final class PagingScrollContainerView: UIView {
     }
 }
 
-extension PagingScrollContainerView: UIScrollViewDelegate {
+extension PagedScrollView: UIScrollViewDelegate {
     public func scrollViewDidScroll(_ scrollView: UIScrollView) {
         reportProgress()
         firePageSnapHapticIfNeeded()
@@ -231,4 +231,3 @@ extension PagingScrollContainerView: UIScrollViewDelegate {
         HapticsManager.light()
     }
 }
-

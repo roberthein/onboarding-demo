@@ -8,10 +8,10 @@ public final class OnboardingContainerView: UIView {
         return view
     }()
 
-    public lazy var pagingView: PagingScrollContainerView = {
-        let pagingScrollView = PagingScrollContainerView()
-        pagingScrollView.translatesAutoresizingMaskIntoConstraints = false
-        return pagingScrollView
+    public lazy var pagedScrollView: PagedScrollView = {
+        let view = PagedScrollView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
     }()
 
     private lazy var settingsMenuButton: UIButton = {
@@ -81,7 +81,7 @@ public final class OnboardingContainerView: UIView {
 
     private func buildView() {
         addSubview(gradientBackgroundView)
-        addSubview(pagingView)
+        addSubview(pagedScrollView)
         addSubview(footerView)
         addSubview(debugTintOverlay)
         addSubview(settingsMenuButton)
@@ -98,7 +98,7 @@ public final class OnboardingContainerView: UIView {
         bringSubviewToFront(footerView)
         bringSubviewToFront(settingsMenuButton)
         bringSubviewToFront(debugOverlayContainer)
-        let pagingBottom = pagingView.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor)
+        let pagingBottom = pagedScrollView.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor)
         pagingBottomConstraint = pagingBottom
         footerViewLeadingConstraint = footerView.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 0)
         footerViewTrailingConstraint = footerView.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: 0)
@@ -119,9 +119,9 @@ public final class OnboardingContainerView: UIView {
             debugTintOverlay.leadingAnchor.constraint(equalTo: leadingAnchor),
             debugTintOverlay.trailingAnchor.constraint(equalTo: trailingAnchor),
             debugTintOverlay.bottomAnchor.constraint(equalTo: bottomAnchor),
-            pagingView.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor),
-            pagingView.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor),
-            pagingView.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor),
+            pagedScrollView.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor),
+            pagedScrollView.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor),
+            pagedScrollView.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor),
             pagingBottom,
             footerViewLeadingConstraint!, footerViewTrailingConstraint!, footerViewBottomConstraint!, footerViewHeightConstraint!,
             settingsMenuTopConstraint!, settingsMenuTrailingConstraint!, settingsMenuWidthConstraint!, settingsMenuHeightConstraint!,
@@ -152,7 +152,7 @@ public final class OnboardingContainerView: UIView {
         isDebugModeEnabled = enabled
         backgroundColor = .clear
         debugTintOverlay.isHidden = !enabled
-        pagingView.setDebugModeEnabled(enabled)
+        pagedScrollView.setDebugModeEnabled(enabled)
     }
 
     public func setDebugInfo(scrollSnapshot: ScrollProgressSnapshot?, theme: Theme) {
