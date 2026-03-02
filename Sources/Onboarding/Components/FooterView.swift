@@ -89,6 +89,7 @@ public final class FooterView: UIView {
     }
 
     @objc private func continueButtonTapped() {
+        continueButton.bounce()
         onContinueTapped?()
     }
 

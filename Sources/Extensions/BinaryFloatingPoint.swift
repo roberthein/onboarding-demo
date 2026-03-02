@@ -2,6 +2,11 @@ import Foundation
 
 public extension BinaryFloatingPoint {
 
+    func easeOutCubic() -> Self {
+        let x = min(max(Double(self), 0), 1)
+        return Self(1 - pow(1 - x, 3))
+    }
+
     func easeOutBack() -> Self {
         let normalizedValue = min(max(Double(self), 0), 1)
         let overshootCoefficient = 0.7

@@ -1,3 +1,4 @@
+import QuartzCore
 import UIKit
 
 public final class SkillPickerPageView: ScrollablePageView {
@@ -47,6 +48,11 @@ public final class SkillPickerPageView: ScrollablePageView {
     private var stackViewLeadingConstraint: NSLayoutConstraint?
     private var stackViewTrailingConstraint: NSLayoutConstraint?
     private var theme: Theme?
+    private var translationX: CGFloat = 0
+    private var headBobDisplayLink: CADisplayLink?
+    private var headBobStartTime: CFTimeInterval = 0
+    private var congratsPageProgress: CGFloat = 0
+    private var selectedSkillLevel: SkillLevel?
 
     var onPickerSelect: ((SkillLevel?) -> Void)? {
         get { pickerView.onSelect }
@@ -81,11 +87,24 @@ public final class SkillPickerPageView: ScrollablePageView {
             trailing,
             stackView.bottomAnchor.constraint(equalTo: centeredContentView.bottomAnchor),
         ])
+        scrollView.clipsToBounds = false
     }
 
     public func setSelected(_ level: SkillLevel?, animate: Bool = false) {
+        selectedSkillLevel = level
         pickerView.setSelected(level)
         updateFaceImage(for: level, animate: animate)
+    }
+
+    public func setCongratsPageProgress(_ progress: CGFloat) {
+        congratsPageProgress = progress
+        if progress > 0 {
+            if headBobDisplayLink == nil {
+                startHeadBobbing()
+            }
+        } else {
+            stopHeadBobbing()
+        }
     }
 
     private func updateFaceImage(for level: SkillLevel?, animate: Bool = false) {
@@ -98,6 +117,7 @@ public final class SkillPickerPageView: ScrollablePageView {
     }
 
     private func bounceRotateFaceImage() {
+        stopHeadBobbing()
         let resolvedTheme = theme ?? Theme.fallback
         let face = resolvedTheme.skillPickerFace
         faceImageView.transform = CGAffineTransform(rotationAngle: -face.rotationAngle).scaledBy(x: 1.1, y: 1.1)
@@ -108,7 +128,49 @@ public final class SkillPickerPageView: ScrollablePageView {
             initialSpringVelocity: face.bounceVelocity
         ) {
             self.faceImageView.transform = .identity
+        } completion: { [weak self] _ in
+            self?.restartHeadBobbingIfNeeded()
         }
+    }
+
+    override public func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window == nil {
+            stopHeadBobbing()
+        }
+    }
+
+    private func startHeadBobbing() {
+        headBobStartTime = CACurrentMediaTime()
+        headBobDisplayLink = CADisplayLink(target: self, selector: #selector(headBobTick(_:)))
+        headBobDisplayLink?.add(to: .main, forMode: .common)
+    }
+
+    private func stopHeadBobbing() {
+        headBobDisplayLink?.invalidate()
+        headBobDisplayLink = nil
+        faceImageView.transform = .identity
+    }
+
+    private func restartHeadBobbingIfNeeded() {
+        if congratsPageProgress > 0 {
+            startHeadBobbing()
+        }
+    }
+
+    @objc private func headBobTick(_ link: CADisplayLink) {
+        let intensity = congratsPageProgress.easeOutCubic()
+        guard intensity > 0.001 else {
+            faceImageView.transform = .identity
+            return
+        }
+        let t = CACurrentMediaTime() - headBobStartTime
+        let params = SkillLevel.HeadBobParams.for(selectedSkillLevel)
+        let bobY = (sin(t * params.freq1) * params.bobAmp1 + sin(t * params.freq2 + params.phase2) * params.bobAmp2 + sin(t * params.freq3 - params.phase3) * params.bobAmp3) * intensity
+        let tilt = (sin(t * params.tiltFreq1 + 0.3) * params.tiltAmp + sin(t * params.tiltFreq2 + 2.1) * params.tiltAmp * 0.5) * intensity
+        let sway = sin(t * params.swayFreq + 0.7) * params.swayAmp * intensity
+        faceImageView.transform = CGAffineTransform(translationX: sway, y: bobY)
+            .rotated(by: tilt)
     }
 }
 
@@ -134,5 +196,16 @@ extension SkillPickerPageView {
         titleLabel.alpha = progress
         subtitleLabel.alpha = progress
         pickerView.alpha = progress
+    }
+}
+
+extension SkillPickerPageView: ScrollTranslationApplicable {
+    public func applyScrollTranslation(contentOffsetX: CGFloat, pageWidth: CGFloat) {
+        guard pageWidth > 0 else { return }
+        let skillPickerPageIndex: CGFloat = 2
+        translationX = contentOffsetX - skillPickerPageIndex * pageWidth
+        if translationX > 0 {
+            centeredContentView.transform = CGAffineTransform(translationX: translationX, y: 0)
+        }
     }
 }

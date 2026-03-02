@@ -150,13 +150,6 @@ public final class MainContentView: UIView {
         updateTransform()
     }
 
-    public func applyScrollTranslation(contentOffsetX: CGFloat, pageWidth: CGFloat) {
-        guard pageWidth > 0 else { return }
-        let overallProgress = contentOffsetX / pageWidth
-        translationX = overallProgress <= 1 ? contentOffsetX : pageWidth
-        updateTransform()
-    }
-
     private func updateTransform() {
         let mainContent = theme?.mainContent ?? Theme.fallback.mainContent
         let rangeEnd = mainContent.scrollPhaseStartY - mainContent.verticalOffsetEnd
@@ -193,6 +186,16 @@ public final class MainContentView: UIView {
 
 extension MainContentView: PageAppearanceUpdatable {
     public func updateAppearance(progress: CGFloat) {}
+}
+
+extension MainContentView: ScrollTranslationApplicable {
+
+    public func applyScrollTranslation(contentOffsetX: CGFloat, pageWidth: CGFloat) {
+        guard pageWidth > 0 else { return }
+        let overallProgress = contentOffsetX / pageWidth
+        translationX = overallProgress <= 1 ? contentOffsetX : pageWidth
+        updateTransform()
+    }
 }
 
 extension MainContentView: ThemedView {

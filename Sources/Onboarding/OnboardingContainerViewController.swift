@@ -7,9 +7,7 @@ public final class OnboardingContainerViewController: UIViewController {
     private let debugProvider: DebugProviding
     private let progressCoordinator: ScrollProgressCoordinator
     private let viewModel: OnboardingViewModel
-    private var mainContentView: MainContentView!
-    private var pageViewControllers: [UIViewController] = []
-    private var pageAppearanceUpdatables: [PageAppearanceUpdatable] = []
+
     private var progressTask: Task<Void, Never>?
     private var themeTask: Task<Void, Never>?
     private var debugTask: Task<Void, Never>?
@@ -19,6 +17,40 @@ public final class OnboardingContainerViewController: UIViewController {
     private var hasAppearAnimationCompleted = false
     private var appearAnimator: DisplayLinkAnimator?
     private var appearAnimationTask: Task<Void, Never>?
+
+    private lazy var mainContentView: MainContentView = {
+        MainContentView(
+            accolade: Accolade(icon: .appleLogo, title: LocalizedStrings.MainContent.appleDesignAward, subtitle: LocalizedStrings.MainContent.winner)
+        )
+    }()
+
+    private lazy var accoladesPageView: AccoladesPageView = {
+        let view = AccoladesPageView(accolades: DefaultAccolades.accolades)
+        view.backgroundColor = .clear
+        return view
+    }()
+
+    private lazy var skillPickerPageView: SkillPickerPageView = {
+        let view = SkillPickerPageView()
+        view.backgroundColor = .clear
+        view.setSelected(viewModel.skillLevel)
+        return view
+    }()
+
+    private lazy var congratulationsPageView: CongratulationsPageView = {
+        let view = CongratulationsPageView()
+        view.backgroundColor = .clear
+        view.configure(title: CongratulationsContent.title, subtitle: CongratulationsContent.subtitle(for: viewModel.skillLevel), skillLevel: viewModel.skillLevel)
+        return view
+    }()
+
+    private var pageAppearanceUpdatables: [PageAppearanceUpdatable] {
+        [mainContentView, accoladesPageView, skillPickerPageView, congratulationsPageView]
+    }
+
+    private var scrollTranslationApplicables: [ScrollTranslationApplicable] {
+        [mainContentView, skillPickerPageView]
+    }
 
     private var containerView: OnboardingContainerView {
         view as! OnboardingContainerView
@@ -47,18 +79,12 @@ public final class OnboardingContainerViewController: UIViewController {
     override public func viewDidLoad() {
         super.viewDidLoad()
 
-        mainContentView = MainContentView(
-            accolade: Accolade(icon: .appleLogo, title: LocalizedStrings.MainContent.appleDesignAward, subtitle: LocalizedStrings.MainContent.winner)
-        )
-        let accolades = AccoladesPageViewController(themeProvider: themeProvider)
-        let skillPicker = SkillPickerPageViewController(themeProvider: themeProvider, viewModel: viewModel)
-        let congrats = CongratulationsPageViewController(themeProvider: themeProvider, onboardingViewModel: viewModel)
+        skillPickerPageView.onPickerSelect = { [weak self] level in
+            self?.skillPickerPageView.setSelected(level, animate: true)
+            self?.viewModel.selectSkillLevel(level)
+        }
 
-        pageViewControllers = [accolades, skillPicker, congrats]
-        pageAppearanceUpdatables = [mainContentView, accolades, skillPicker, congrats]
-        addChildViewControllers()
-        pageViewControllers.forEach { $0.loadViewIfNeeded() }
-        let pageHosts: [UIView] = [mainContentView] + pageViewControllers.compactMap { $0.view }
+        let pageHosts: [UIView] = [mainContentView, accoladesPageView, skillPickerPageView, congratulationsPageView]
         containerView.pagedScrollView.configure(numberOfPages: viewModel.totalPages, pageViews: pageHosts)
         containerView.pagedScrollView.onScroll = { [weak self] scrollView in
             guard let self else { return }
@@ -67,7 +93,7 @@ public final class OnboardingContainerViewController: UIViewController {
                 ? scrollView.bounds.width
                 : self.containerView.pagedScrollView.bounds.width
             guard pageWidth > 0 else { return }
-            self.mainContentView.applyScrollTranslation(contentOffsetX: contentOffsetX, pageWidth: pageWidth)
+            self.scrollTranslationApplicables.forEach { $0.applyScrollTranslation(contentOffsetX: contentOffsetX, pageWidth: pageWidth) }
         }
 
         progressCoordinator.connect(to: containerView.pagedScrollView.progressStream())
@@ -238,7 +264,14 @@ public final class OnboardingContainerViewController: UIViewController {
         applyDebugMode(isDebugEnabled: isDebugEnabled, theme: theme)
         containerView.apply(theme: theme)
         mainContentView.apply(theme: theme)
-        pageViewControllers.forEach { ($0 as? ThemedView)?.apply(theme: theme) }
+        accoladesPageView.apply(theme: theme)
+        skillPickerPageView.apply(theme: theme)
+        congratulationsPageView.apply(theme: theme)
+        if let snapshot = lastScrollSnapshot {
+            let congratsProgress = snapshot.progress(forPage: OnboardingPage.done.rawValue)
+            skillPickerPageView.setCongratsPageProgress(congratsProgress)
+            containerView.setDecibelOverlay(visible: congratsProgress > 0, skillLevel: viewModel.skillLevel, progress: congratsProgress)
+        }
         refreshFooterState()
         refreshDebugOverlay()
     }
@@ -280,21 +313,14 @@ public final class OnboardingContainerViewController: UIViewController {
         containerView.setDebugModeEnabled(isDebugEnabled, themeBackground: theme.color.primaryBackground)
         containerView.pagedScrollView.setDebugModeEnabled(isDebugEnabled)
         mainContentView.setDebugModeEnabled(isDebugEnabled)
-        pageViewControllers.forEach { viewController in
-            (viewController.view as? ScrollablePageView)?.setDebugModeEnabled(isDebugEnabled)
-        }
+        accoladesPageView.setDebugModeEnabled(isDebugEnabled)
+        skillPickerPageView.setDebugModeEnabled(isDebugEnabled)
+        congratulationsPageView.setDebugModeEnabled(isDebugEnabled)
     }
 
     private func refreshDebugOverlay() {
         let theme = lastTheme ?? .figma
         containerView.setDebugInfo(scrollSnapshot: lastScrollSnapshot, theme: theme)
-    }
-
-    private func addChildViewControllers() {
-        pageViewControllers.forEach { viewController in
-            addChild(viewController)
-            viewController.didMove(toParent: self)
-        }
     }
 
     private func handleProgress(_ snapshot: ScrollProgressSnapshot) {
@@ -308,6 +334,13 @@ public final class OnboardingContainerViewController: UIViewController {
             guard let updatable = pageAppearanceUpdatables[safe: progressItem.pageIndex] else { return }
             updatable.updateAppearance(progress: progressItem.progress)
         }
+        let congratsProgress = snapshot.progress(forPage: OnboardingPage.done.rawValue)
+        skillPickerPageView.setCongratsPageProgress(congratsProgress)
+        containerView.setDecibelOverlay(
+            visible: congratsProgress > 0,
+            skillLevel: viewModel.skillLevel,
+            progress: congratsProgress
+        )
         updateFooter(snapshot: snapshot)
     }
 
@@ -327,7 +360,7 @@ public final class OnboardingContainerViewController: UIViewController {
     }
 
     private func refreshCongratulationsContent() {
-        (pageViewControllers.last as? CongratulationsPageViewController)?.refreshContent()
+        congratulationsPageView.configure(title: CongratulationsContent.title, subtitle: CongratulationsContent.subtitle(for: viewModel.skillLevel), skillLevel: viewModel.skillLevel)
     }
 
     private func handleContinueTapped() {

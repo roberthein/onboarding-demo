@@ -1,6 +1,8 @@
 import UIKit
 
 public final class CongratulationsPageView: ScrollablePageView {
+    private var skillLevel: SkillLevel?
+
     private lazy var titleLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -48,9 +50,10 @@ public final class CongratulationsPageView: ScrollablePageView {
         ])
     }
 
-    public func configure(title: String, subtitle: String) {
+    public func configure(title: String, subtitle: String, skillLevel: SkillLevel? = nil) {
         titleLabel.text = title
         subtitleLabel.text = subtitle
+        self.skillLevel = skillLevel
     }
 
     public func setSubtitle(_ text: String) {

@@ -82,6 +82,10 @@ public final class OnboardingContainerView: UIView {
         gradientBackgroundView.setProgress(progress)
     }
 
+    public func setDecibelOverlay(visible: Bool, skillLevel: SkillLevel?, progress: CGFloat) {
+        gradientBackgroundView.setDecibelOverlay(visible: visible, skillLevel: skillLevel, progress: visible ? progress : 0)
+    }
+
     public func setFooterReservedHeight(_ height: CGFloat) {
         pagingBottomConstraint?.constant = -height
     }

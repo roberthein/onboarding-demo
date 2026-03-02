@@ -3,8 +3,6 @@ import Foundation
 public enum LocalizedStrings {
 
     public enum Welcome {
-        public static let title = String(localized: "Welcome")
-        public static let subtitle = String(localized: "Discover what you can build")
         public static let footer = String(localized: "Welcome to djay!")
     }
 

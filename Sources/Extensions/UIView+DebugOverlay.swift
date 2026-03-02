@@ -21,9 +21,6 @@ private var debugOverlayHostKey: UInt8 = 0
 
 extension UIView {
 
-    /// Installs a debug tint overlay. Use on any view with multiple subviews to visualize layout bounds.
-    /// Call `setDebugOverlayVisible(_:)` to toggle visibility.
-    /// - Parameter tintColor: Overlay color (default: red with low alpha)
     public func installDebugOverlay(tintColor: UIColor = UIColor.systemRed.withAlphaComponent(0.06)) {
         guard debugOverlayHost == nil else { return }
 
@@ -44,9 +41,6 @@ extension UIView {
         debugOverlayHost = DebugOverlayHost(tintOverlay: overlay)
     }
 
-    /// Installs a debug overlay with tint and an info panel for custom debug text (e.g. scroll progress).
-    /// Call `setDebugOverlayVisible(_:)` to toggle, and `updateDebugOverlayInfo(_:theme:)` to update the label.
-    /// - Parameter tintColor: Overlay color (default: red with low alpha)
     public func installDebugOverlayWithInfo(tintColor: UIColor = UIColor.systemRed.withAlphaComponent(0.06)) {
         guard debugOverlayHost == nil else { return }
 
@@ -84,13 +78,11 @@ extension UIView {
         host.infoLabel = label
     }
 
-    /// Shows or hides the debug overlay(s).
     public func setDebugOverlayVisible(_ visible: Bool) {
         debugOverlayHost?.tintOverlay.isHidden = !visible
         debugOverlayHost?.infoContainer?.isHidden = !visible
     }
 
-    /// Updates the info panel text and styling. Only applies when using `installDebugOverlayWithInfo`.
     public func updateDebugOverlayInfo(_ text: String, theme: Theme) {
         guard let host = debugOverlayHost, let label = host.infoLabel, let container = host.infoContainer else { return }
         label.applyDebugStyle(theme: theme)

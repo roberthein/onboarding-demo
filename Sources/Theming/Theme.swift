@@ -3,6 +3,10 @@ import UIKit
 public enum Theme: String, CaseIterable, Sendable {
     case figma
     case experimental
+
+    var isExperimental: Bool {
+        self == .experimental
+    }
 }
 
 extension Theme {
@@ -94,8 +98,26 @@ public struct ThemeColors: Sendable {
     public var gradientPrimaryBackground: UIColor {
         switch theme {
         case .figma: return AppStyle.Color.Figma.gradientPrimary
-        case .experimental: return AppStyle.Color.Experimental.primaryBackground
+        case .experimental: return Self.blend(
+            AppStyle.Color.Experimental.gradientSecondary,
+            AppStyle.Color.Experimental.accent,
+            factor: 0.3
+        )
         }
+    }
+
+    private static func blend(_ first: UIColor, _ second: UIColor, factor: CGFloat) -> UIColor {
+        let f = min(max(factor, 0), 1)
+        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
+        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+        first.getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
+        second.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
+        return UIColor(
+            red: (1 - f) * r1 + f * r2,
+            green: (1 - f) * g1 + f * g2,
+            blue: (1 - f) * b1 + f * b2,
+            alpha: (1 - f) * a1 + f * a2
+        )
     }
 
     public var gradientSecondaryBackground: UIColor {
@@ -662,42 +684,6 @@ public struct ThemeMainContent: Sendable {
 
 extension Theme {
     public var mainContent: ThemeMainContent { ThemeMainContent(theme: self) }
-}
-
-public struct ThemeWelcomePage: Sendable {
-    let theme: Theme
-
-    public var titleScaleMin: CGFloat {
-        switch theme {
-        case .figma: return AppStyle.WelcomePage.Figma.titleScaleMin
-        case .experimental: return AppStyle.WelcomePage.Experimental.titleScaleMin
-        }
-    }
-
-    public var titleScaleMax: CGFloat {
-        switch theme {
-        case .figma: return AppStyle.WelcomePage.Figma.titleScaleMax
-        case .experimental: return AppStyle.WelcomePage.Experimental.titleScaleMax
-        }
-    }
-
-    public var subtitleFadeStart: CGFloat {
-        switch theme {
-        case .figma: return AppStyle.WelcomePage.Figma.subtitleFadeStart
-        case .experimental: return AppStyle.WelcomePage.Experimental.subtitleFadeStart
-        }
-    }
-
-    public var subtitleFadeEnd: CGFloat {
-        switch theme {
-        case .figma: return AppStyle.WelcomePage.Figma.subtitleFadeEnd
-        case .experimental: return AppStyle.WelcomePage.Experimental.subtitleFadeEnd
-        }
-    }
-}
-
-extension Theme {
-    public var welcomePage: ThemeWelcomePage { ThemeWelcomePage(theme: self) }
 }
 
 public struct ThemeSkillPickerFace: Sendable {

@@ -223,22 +223,6 @@ public enum AppStyle {
         }
     }
 
-    public enum WelcomePage {
-        public enum Figma {
-            public static let titleScaleMin: CGFloat = 0.92
-            public static let titleScaleMax: CGFloat = 1
-            public static let subtitleFadeStart: CGFloat = 0.3
-            public static let subtitleFadeEnd: CGFloat = 1
-        }
-
-        public enum Experimental {
-            public static let titleScaleMin: CGFloat = 0.88
-            public static let titleScaleMax: CGFloat = 1.02
-            public static let subtitleFadeStart: CGFloat = 0.2
-            public static let subtitleFadeEnd: CGFloat = 1
-        }
-    }
-
     public enum SkillPickerFace {
         public enum Figma {
             public static let bounceDuration: TimeInterval = 0.6

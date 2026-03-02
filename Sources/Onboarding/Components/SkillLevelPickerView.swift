@@ -49,6 +49,7 @@ public final class SkillLevelPickerView: UIView {
         guard let (level, _) = buttons.first(where: { $0.value === sender }) else { return }
         let newSelection: SkillLevel? = level == selectedLevel ? nil : level
         HapticsManager.selection()
+        sender.bounce()
         setSelected(newSelection)
         onSelect?(newSelection)
     }
@@ -91,8 +92,6 @@ private extension SkillLevelPickerView {
         guard let theme else { return }
         let picker = theme.skillLevelPicker
         let textColor = theme.color.textPrimary
-        let checkboxImage = UIImage(named: "checkbox")
-        let checkboxFilledImage = UIImage(named: "checkbox-filled")
 
         buttons.forEach { (skillLevel, button) in
             let isSelected = skillLevel == selectedLevel
@@ -107,7 +106,7 @@ private extension SkillLevelPickerView {
             )
             config.attributedTitle = AttributedString(attributedTitle)
             config.baseForegroundColor = textColor
-            config.image = isSelected ? checkboxFilledImage : checkboxImage
+            config.image = checkboxImage(isSelected: isSelected)
             config.imagePlacement = .leading
             config.imagePadding = picker.imageTrailingMargin
             config.background.backgroundColor = theme.color.surface.withAlphaComponent(0.1)
@@ -116,10 +115,21 @@ private extension SkillLevelPickerView {
             config.background.strokeWidth = isSelected ? picker.selectedStrokeWidth : 0
             config.contentInsets = .init(top: picker.paddingVertical, leading: picker.imageLeadingMargin, bottom: picker.paddingVertical, trailing: picker.paddingHorizontal)
             config.titleAlignment = .leading
+
             button.configuration = config
             button.configurationUpdateHandler = { _ in }
             button.contentHorizontalAlignment = .leading
             button.tintColor = textColor
+        }
+    }
+
+    private func checkboxImage(isSelected: Bool) -> UIImage? {
+        guard let theme else { return nil }
+
+        return if theme.isExperimental {
+            isSelected ? UIImage(named: "checkbox-filled-experimental") : UIImage(named: "checkbox")
+        } else {
+            isSelected ? UIImage(named: "checkbox-filled") : UIImage(named: "checkbox")
         }
     }
 }
