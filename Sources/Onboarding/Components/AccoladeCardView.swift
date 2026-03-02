@@ -106,8 +106,8 @@ public final class AccoladeCardView: UIView {
         self.accolade = accolade
         titleLabel.text = accolade.title
         subtitleLabel.text = accolade.subtitle
-        let t = theme ?? Theme.fallback
-        let iconSize = t.accoladeCard.iconSize
+        let resolvedTheme = theme ?? Theme.fallback
+        let iconSize = resolvedTheme.accoladeCard.iconSize
         let config = UIImage.SymbolConfiguration(pointSize: iconSize, weight: .regular)
         iconImageView.image = UIImage(systemName: accolade.icon.sfSymbolName, withConfiguration: config)?
             .withRenderingMode(.alwaysTemplate)
@@ -123,9 +123,9 @@ extension AccoladeCardView: ThemedView {
         self.theme = theme
         let iconSize = theme.accoladeCard.iconSize
         let config = UIImage.SymbolConfiguration(pointSize: iconSize, weight: .regular)
-        if let acc = accolade,
-           let img = UIImage(systemName: acc.icon.sfSymbolName, withConfiguration: config) {
-            iconImageView.image = img.withRenderingMode(.alwaysTemplate)
+        if let currentAccolade = accolade,
+           let symbolImage = UIImage(systemName: currentAccolade.icon.sfSymbolName, withConfiguration: config) {
+            iconImageView.image = symbolImage.withRenderingMode(.alwaysTemplate)
         }
         iconImageView.tintColor = theme.color.textPrimary
         centerStack.spacing = theme.accoladeCard.centerStackSpacing

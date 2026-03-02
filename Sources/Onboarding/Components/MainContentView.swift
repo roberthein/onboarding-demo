@@ -1,6 +1,6 @@
 import UIKit
 
-public final class MainContentFigmaView: UIView {
+public final class MainContentView: UIView {
     private var accoladeCardView: AccoladeCardView?
     private var theme: Theme?
     private var translationX: CGFloat = 0
@@ -152,14 +152,14 @@ public final class MainContentFigmaView: UIView {
     }
 
     public func setAppearProgress(_ progress: CGFloat) {
-        appearProgress = min(max(progress, 0), 1)
+        appearProgress = progress.clamped(to: 0...1)
         firstImageView.alpha = appearProgress
         topSpacer.alpha = appearProgress
         bottomSpacer.alpha = appearProgress
     }
 
     public func setVerticalOffsetProgress(_ progress: CGFloat) {
-        verticalOffsetProgress = min(1, max(-1, progress))
+        verticalOffsetProgress = progress.clamped(to: -1...1)
         updateTransform()
     }
 
@@ -171,16 +171,16 @@ public final class MainContentFigmaView: UIView {
     }
 
     private func updateTransform() {
-        let mc = theme?.mainContent ?? Theme.fallback.mainContent
-        let rangeEnd = mc.scrollPhaseStartY - mc.verticalOffsetEnd
+        let mainContent = theme?.mainContent ?? Theme.fallback.mainContent
+        let rangeEnd = mainContent.scrollPhaseStartY - mainContent.verticalOffsetEnd
         let rawMapped = verticalOffsetProgress.map(from: -1...1, to: 0...rangeEnd)
         let translationY: CGFloat
         if verticalOffsetProgress < 0 {
             let normalized = (verticalOffsetProgress + 1)
             let eased = normalized.easeOutBack()
-            translationY = mc.scrollPhaseStartY - eased.map(from: 0...1, to: 0...mc.appearPhaseEndY)
+            translationY = mainContent.scrollPhaseStartY - eased.map(from: 0...1, to: 0...mainContent.appearPhaseEndY)
         } else {
-            translationY = mc.scrollPhaseStartY - rawMapped
+            translationY = mainContent.scrollPhaseStartY - rawMapped
         }
         transform = CGAffineTransform(translationX: translationX, y: translationY)
     }
@@ -190,25 +190,25 @@ public final class MainContentFigmaView: UIView {
     }
 
     private func updateExpandableVisibility(progress: CGFloat) {
-        let mc = theme?.mainContent ?? Theme.fallback.mainContent
+        let mainContent = theme?.mainContent ?? Theme.fallback.mainContent
         let alpha = progress.map(from: 0...1, to: 0...1)
-        let scale = mc.labelScaleStart + (1 - mc.labelScaleStart) * progress
-        let t = CGAffineTransform(scaleX: scale, y: scale)
+        let scale = mainContent.labelScaleStart + (1 - mainContent.labelScaleStart) * progress
+        let scaleTransform = CGAffineTransform(scaleX: scale, y: scale)
 
         secondImageView.alpha = alpha
-        secondImageView.transform = t.translatedBy(x: 0, y: (1 - progress) * mc.expandableTranslationY)
+        secondImageView.transform = scaleTransform.translatedBy(x: 0, y: (1 - progress) * mainContent.expandableTranslationY)
         label.alpha = alpha
-        label.transform = t.translatedBy(x: 0, y: (mc.labelScaleStartFactor - progress) * mc.expandableLabelTranslationY)
+        label.transform = scaleTransform.translatedBy(x: 0, y: (mainContent.labelScaleStartFactor - progress) * mainContent.expandableLabelTranslationY)
         accoladeContainerView.alpha = alpha
-        accoladeContainerView.transform = t.translatedBy(x: 0, y: (mc.labelScaleStartFactor - progress) * mc.expandableLabelTranslationY)
+        accoladeContainerView.transform = scaleTransform.translatedBy(x: 0, y: (mainContent.labelScaleStartFactor - progress) * mainContent.expandableLabelTranslationY)
     }
 }
 
-extension MainContentFigmaView: PageAppearanceUpdatable {
+extension MainContentView: PageAppearanceUpdatable {
     public func updateAppearance(progress: CGFloat) {}
 }
 
-extension MainContentFigmaView: ThemedView {
+extension MainContentView: ThemedView {
     public func apply(theme: Theme) {
         self.theme = theme
         let spacing = theme.spacing.content

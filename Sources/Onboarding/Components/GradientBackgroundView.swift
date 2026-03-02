@@ -1,9 +1,9 @@
 import SwiftUI
 import UIKit
 
-public final class OnboardingGradientBackgroundView: UIView {
+public final class GradientBackgroundView: UIView {
 
-    private var hostingController: UIHostingController<OnboardingGradientView>?
+    private var hostingController: UIHostingController<GradientView>?
     private var primaryColor: UIColor = .black
     private var secondaryColor: UIColor = .darkGray
     private var lastProgress: CGFloat = -1
@@ -25,7 +25,7 @@ public final class OnboardingGradientBackgroundView: UIView {
 
     private func installHostingController() {
         guard let parentVC = nearestViewController else { return }
-        let view = OnboardingGradientView(
+        let view = GradientView(
             progress: lastProgress,
             primaryColor: primaryColor,
             secondaryColor: secondaryColor
@@ -48,7 +48,7 @@ public final class OnboardingGradientBackgroundView: UIView {
     private var nearestViewController: UIViewController? {
         var responder: UIResponder? = self
         while let next = responder?.next {
-            if let vc = next as? UIViewController { return vc }
+            if let viewController = next as? UIViewController { return viewController }
             responder = next
         }
         return nil
@@ -68,7 +68,7 @@ public final class OnboardingGradientBackgroundView: UIView {
 
     private func updateHostedView() {
         guard let hosting = hostingController else { return }
-        hosting.rootView = OnboardingGradientView(
+        hosting.rootView = GradientView(
             progress: lastProgress,
             primaryColor: primaryColor,
             secondaryColor: secondaryColor

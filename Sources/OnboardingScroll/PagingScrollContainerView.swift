@@ -4,6 +4,7 @@ public typealias ScrollProgressHandler = @Sendable (ScrollProgressSnapshot) -> V
 
 public final class PagingScrollContainerView: UIView {
     private var progressHandler: ScrollProgressHandler?
+    private var progressContinuation: AsyncStream<ScrollProgressSnapshot>.Continuation?
     private var numberOfPages: Int = 0
     private var lastHapticPageIndex: Int = -1
     private var pageWidth: CGFloat { bounds.width }
@@ -119,6 +120,19 @@ public final class PagingScrollContainerView: UIView {
         progressHandler = handler
     }
 
+    public func progressStream() -> AsyncStream<ScrollProgressSnapshot> {
+        AsyncStream { [weak self] continuation in
+            guard let self else { return }
+            progressContinuation = continuation
+            let ref = WeakSendable(self)
+            continuation.onTermination = { _ in
+                Task { @MainActor in
+                    ref.value?.progressContinuation = nil
+                }
+            }
+        }
+    }
+
     public var onScroll: ((UIScrollView) -> Void)?
 
     public var shouldAllowScrollToPage: ((Int) -> Bool)?
@@ -162,6 +176,11 @@ public final class PagingScrollContainerView: UIView {
         }
         let snapshot = ScrollProgressSnapshot(overallProgress: overall, pageProgress: pageProgress)
         progressHandler?(snapshot)
+        progressContinuation?.yield(snapshot)
+    }
+
+    deinit {
+        progressContinuation?.finish()
     }
 
     private func updateLastPageVisibility() {

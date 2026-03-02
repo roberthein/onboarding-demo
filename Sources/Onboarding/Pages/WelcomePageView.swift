@@ -64,11 +64,11 @@ extension WelcomePageView: PageContentView {
 
 extension WelcomePageView {
     public func updateAppearance(progress: CGFloat) {
-        let t = theme ?? Theme.fallback
-        let wp = t.welcomePage
-        let scale = progress.map(from: 0...1, to: wp.titleScaleMin...wp.titleScaleMax)
+        let resolvedTheme = theme ?? Theme.fallback
+        let welcomePageLayout = resolvedTheme.welcomePage
+        let scale = progress.map(from: 0...1, to: welcomePageLayout.titleScaleMin...welcomePageLayout.titleScaleMax)
         titleLabel.transform = CGAffineTransform(scaleX: scale, y: scale)
         titleLabel.alpha = progress
-        subtitleLabel.alpha = max(0, progress.map(from: wp.subtitleFadeStart...wp.subtitleFadeEnd, to: 0...1))
+        subtitleLabel.alpha = max(0, progress.map(from: welcomePageLayout.subtitleFadeStart...welcomePageLayout.subtitleFadeEnd, to: 0...1))
     }
 }

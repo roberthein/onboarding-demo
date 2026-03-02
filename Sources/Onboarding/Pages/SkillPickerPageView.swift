@@ -98,8 +98,8 @@ public final class SkillPickerPageView: ScrollablePageView {
     }
 
     private func bounceRotateFaceImage() {
-        let t = theme ?? Theme.fallback
-        let face = t.skillPickerFace
+        let resolvedTheme = theme ?? Theme.fallback
+        let face = resolvedTheme.skillPickerFace
         faceImageView.transform = CGAffineTransform(rotationAngle: -face.rotationAngle).scaledBy(x: 1.1, y: 1.1)
         UIView.animate(
             withDuration: face.bounceDuration,

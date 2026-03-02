@@ -2,8 +2,8 @@ import UIKit
 
 public final class OnboardingContainerView: UIView {
 
-    public lazy var gradientBackgroundView: OnboardingGradientBackgroundView = {
-        let view = OnboardingGradientBackgroundView()
+    public lazy var gradientBackgroundView: GradientBackgroundView = {
+        let view = GradientBackgroundView()
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -67,10 +67,7 @@ public final class OnboardingContainerView: UIView {
     private var debugOverlayContainerTopConstraint: NSLayoutConstraint?
     private var debugOverlayContainerLeadingConstraint: NSLayoutConstraint?
 
-    public lazy var footerView: FooterView = {
-        let footer = FooterView()
-        return footer
-    }()
+    public lazy var footerView: FooterView = { FooterView() }()
 
     override public init(frame: CGRect) {
         super.init(frame: frame)
@@ -158,8 +155,8 @@ public final class OnboardingContainerView: UIView {
         pagingView.setDebugModeEnabled(enabled)
     }
 
-    public func setDebugInfo(themeId: String?, scrollSnapshot: ScrollProgressSnapshot?, theme: Theme) {
-        let show = isDebugModeEnabled && (themeId != nil || scrollSnapshot != nil)
+    public func setDebugInfo(scrollSnapshot: ScrollProgressSnapshot?, theme: Theme) {
+        let show = isDebugModeEnabled
         debugOverlayContainer.isHidden = !show
 
         debugOverlay.applyDebugStyle(theme: theme)
@@ -168,7 +165,7 @@ public final class OnboardingContainerView: UIView {
         guard show else { return }
 
         var lines: [String] = []
-        lines.append("Theme: \(themeId ?? debugDefaultValue)")
+        lines.append("Theme: \(theme.id)")
         if let snap = scrollSnapshot {
             lines.append("Scroll: \(String(format: "%.2f", snap.overallProgress))")
             let perPage = snap.pageProgress

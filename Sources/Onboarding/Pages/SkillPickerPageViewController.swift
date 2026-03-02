@@ -1,11 +1,9 @@
 import UIKit
 
 public final class SkillPickerPageViewController: UIViewController {
-    private let themeProvider: ThemeProviding
+    let themeProvider: ThemeProviding
     private let viewModel: OnboardingViewModel
     private var themeTask: Task<Void, Never>?
-
-    public var onSelectSkill: ((SkillLevel?) -> Void)?
 
     private var contentView: SkillPickerPageView {
         view as! SkillPickerPageView
@@ -15,13 +13,7 @@ public final class SkillPickerPageViewController: UIViewController {
         self.themeProvider = themeProvider
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
-        themeTask = Task { @MainActor [weak weakSelf = self] in
-            let stream = await themeProvider.themeStream()
-            for await theme in stream {
-                guard let weakSelf else { return }
-                weakSelf.apply(theme: theme)
-            }
-        }
+        themeTask = startThemeSubscription()
     }
 
     required init?(coder: NSCoder) {
@@ -33,7 +25,6 @@ public final class SkillPickerPageViewController: UIViewController {
         contentView.onPickerSelect = { [weak self] level in
             self?.contentView.setSelected(level, animate: true)
             self?.viewModel.selectSkillLevel(level)
-            self?.onSelectSkill?(level)
         }
         view = contentView
     }
@@ -45,11 +36,7 @@ public final class SkillPickerPageViewController: UIViewController {
     override public func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .clear
-        Task { @MainActor [weak weakSelf = self] in
-            guard let weakSelf else { return }
-            let currentTheme = await themeProvider.currentTheme
-            weakSelf.contentView.apply(theme: currentTheme)
-        }
+        applyInitialTheme()
     }
 
     override public func viewWillAppear(_ animated: Bool) {
@@ -57,6 +44,8 @@ public final class SkillPickerPageViewController: UIViewController {
         contentView.setSelected(viewModel.skillLevel)
     }
 }
+
+extension SkillPickerPageViewController: ThemeSubscribing {}
 
 extension SkillPickerPageViewController: ThemedView {
     public func apply(theme: Theme) {

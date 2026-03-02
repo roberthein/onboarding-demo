@@ -5,6 +5,14 @@ public actor ScrollProgressCoordinator {
 
     public init() {}
 
+    public nonisolated func connect(to stream: AsyncStream<ScrollProgressSnapshot>) {
+        Task {
+            for await snapshot in stream {
+                await report(snapshot)
+            }
+        }
+    }
+
     public func progressStream() -> AsyncStream<ScrollProgressSnapshot> {
         AsyncStream { continuation in
             self.continuation = continuation

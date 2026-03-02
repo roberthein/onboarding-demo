@@ -1,7 +1,6 @@
 import Testing
 @testable import Onboarding
 
-/// Tests for `SkillLevel`: display names and congratulation subtitles.
 @MainActor
 @Suite("SkillLevel")
 struct SkillLevelTests {

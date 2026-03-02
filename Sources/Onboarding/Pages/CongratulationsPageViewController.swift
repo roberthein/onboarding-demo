@@ -1,25 +1,19 @@
 import UIKit
 
 public final class CongratulationsPageViewController: UIViewController {
-    private let themeProvider: ThemeProviding
-    private let viewModel: CongratulationsViewModel
+    let themeProvider: ThemeProviding
+    private let onboardingViewModel: OnboardingViewModel
     private var themeTask: Task<Void, Never>?
 
     private var contentView: CongratulationsPageView {
         view as! CongratulationsPageView
     }
 
-    public init(themeProvider: ThemeProviding, viewModel: CongratulationsViewModel) {
+    public init(themeProvider: ThemeProviding, onboardingViewModel: OnboardingViewModel) {
         self.themeProvider = themeProvider
-        self.viewModel = viewModel
+        self.onboardingViewModel = onboardingViewModel
         super.init(nibName: nil, bundle: nil)
-        themeTask = Task { @MainActor [weak weakSelf = self] in
-            let stream = await themeProvider.themeStream()
-            for await theme in stream {
-                guard let weakSelf else { return }
-                weakSelf.apply(theme: theme)
-            }
-        }
+        themeTask = startThemeSubscription()
     }
 
     required init?(coder: NSCoder) {
@@ -28,7 +22,7 @@ public final class CongratulationsPageViewController: UIViewController {
 
     override public func loadView() {
         let contentView = CongratulationsPageView()
-        contentView.configure(title: viewModel.titleText, subtitle: viewModel.subtitleText)
+        contentView.configure(title: CongratulationsContent.title, subtitle: CongratulationsContent.subtitle(for: onboardingViewModel.skillLevel))
         view = contentView
     }
 
@@ -39,22 +33,20 @@ public final class CongratulationsPageViewController: UIViewController {
     override public func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .clear
-        Task { @MainActor [weak weakSelf = self] in
-            guard let weakSelf else { return }
-            let currentTheme = await themeProvider.currentTheme
-            weakSelf.contentView.apply(theme: currentTheme)
-        }
+        applyInitialTheme()
     }
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        contentView.configure(title: viewModel.titleText, subtitle: viewModel.subtitleText)
+        refreshContent()
     }
 
     public func refreshContent() {
-        contentView.configure(title: viewModel.titleText, subtitle: viewModel.subtitleText)
+        contentView.configure(title: CongratulationsContent.title, subtitle: CongratulationsContent.subtitle(for: onboardingViewModel.skillLevel))
     }
 }
+
+extension CongratulationsPageViewController: ThemeSubscribing {}
 
 extension CongratulationsPageViewController: ThemedView {
     public func apply(theme: Theme) {
