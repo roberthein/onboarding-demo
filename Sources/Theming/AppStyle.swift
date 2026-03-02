@@ -40,32 +40,32 @@ public enum AppStyle {
         }
 
         public enum Figma {
-            public static var primaryBackground: UIColor { color(named: "FigmaPrimaryBackground") }
-            public static var gradientPrimary: UIColor { color(named: "FigmaGradientPrimary") }
-            public static var gradientSecondary: UIColor { color(named: "FigmaGradientSecondary") }
-            public static var surface: UIColor { color(named: "FigmaSurface") }
-            public static var textPrimary: UIColor { color(named: "FigmaTextPrimary") }
-            public static var textSecondary: UIColor { color(named: "FigmaTextSecondary") }
-            public static var accent: UIColor { color(named: "FigmaAccent") }
+            public static var primaryBackground: UIColor { color(named: "Figma/PrimaryBackground") }
+            public static var gradientPrimary: UIColor { color(named: "Figma/GradientPrimary") }
+            public static var gradientSecondary: UIColor { color(named: "Figma/GradientSecondary") }
+            public static var surface: UIColor { color(named: "Figma/Surface") }
+            public static var textPrimary: UIColor { color(named: "Figma/TextPrimary") }
+            public static var textSecondary: UIColor { color(named: "Figma/TextSecondary") }
+            public static var accent: UIColor { color(named: "Figma/AccentColor") }
             public static var primaryTint: UIColor { accent }
-            public static var secondaryTint: UIColor { color(named: "FigmaSecondaryTint") }
-            public static var debugOverlayBackground: UIColor { color(named: "FigmaDebugOverlayBackground") }
-            public static var debugOverlayText: UIColor { color(named: "FigmaDebugOverlayText") }
-            public static var onAccent: UIColor { color(named: "FigmaOnAccent") }
+            public static var secondaryTint: UIColor { color(named: "Figma/SecondaryTint") }
+            public static var debugOverlayBackground: UIColor { color(named: "Figma/DebugOverlayBackground") }
+            public static var debugOverlayText: UIColor { color(named: "Figma/DebugOverlayText") }
+            public static var onAccent: UIColor { color(named: "Figma/OnAccent") }
         }
 
         public enum Experimental {
-            public static var primaryBackground: UIColor { color(named: "ExperimentalPrimaryBackground") }
-            public static var gradientSecondary: UIColor { color(named: "ExperimentalGradientSecondary") }
-            public static var surface: UIColor { color(named: "ExperimentalSurface") }
-            public static var textPrimary: UIColor { color(named: "ExperimentalTextPrimary") }
-            public static var textSecondary: UIColor { color(named: "ExperimentalTextSecondary") }
-            public static var accent: UIColor { color(named: "ExperimentalAccent") }
+            public static var primaryBackground: UIColor { color(named: "Experimental/PrimaryBackground") }
+            public static var gradientSecondary: UIColor { color(named: "Experimental/GradientSecondary") }
+            public static var surface: UIColor { color(named: "Experimental/Surface") }
+            public static var textPrimary: UIColor { color(named: "Experimental/TextPrimary") }
+            public static var textSecondary: UIColor { color(named: "Experimental/TextSecondary") }
+            public static var accent: UIColor { color(named: "Experimental/AccentColor") }
             public static var primaryTint: UIColor { accent }
-            public static var secondaryTint: UIColor { color(named: "ExperimentalSecondaryTint") }
-            public static var debugOverlayBackground: UIColor { color(named: "ExperimentalDebugOverlayBackground") }
-            public static var debugOverlayText: UIColor { color(named: "ExperimentalDebugOverlayText") }
-            public static var onAccent: UIColor { color(named: "ExperimentalOnAccent") }
+            public static var secondaryTint: UIColor { color(named: "Experimental/SecondaryTint") }
+            public static var debugOverlayBackground: UIColor { color(named: "Experimental/DebugOverlayBackground") }
+            public static var debugOverlayText: UIColor { color(named: "Experimental/DebugOverlayText") }
+            public static var onAccent: UIColor { color(named: "Experimental/OnAccent") }
         }
     }
 
