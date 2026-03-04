@@ -90,7 +90,7 @@ public final class AccoladeCardView: UIView {
         mainStack.addArrangedSubview(centerStack)
         mainStack.addArrangedSubview(rightImageView)
         addSubview(mainStack)
-        let iconSize = Theme.fallback.accoladeCard.iconSize
+        let iconSize: CGFloat = 20
         iconWidthConstraint = iconImageView.widthAnchor.constraint(equalToConstant: iconSize)
         iconHeightConstraint = iconImageView.heightAnchor.constraint(equalToConstant: iconSize)
         NSLayoutConstraint.activate([
@@ -106,8 +106,7 @@ public final class AccoladeCardView: UIView {
         self.accolade = accolade
         titleLabel.text = accolade.title
         subtitleLabel.text = accolade.subtitle
-        let resolvedTheme = theme ?? Theme.fallback
-        let iconSize = resolvedTheme.accoladeCard.iconSize
+        let iconSize = theme?.accoladeCard.iconSize ?? 20
         let config = UIImage.SymbolConfiguration(pointSize: iconSize, weight: .regular)
         iconImageView.image = UIImage(systemName: accolade.icon.sfSymbolName, withConfiguration: config)?
             .withRenderingMode(.alwaysTemplate)

@@ -40,6 +40,9 @@ public final class FooterView: UIView {
     private var pageCount: Int = 1
     private var welcomeLabelContainerHeightConstraint: NSLayoutConstraint?
     private var continueButtonHeightConstraint: NSLayoutConstraint?
+    private var welcomeLabelTopConstraint: NSLayoutConstraint?
+    private var welcomeLabelHeightConstraint: NSLayoutConstraint?
+    private var pageIndicatorTopConstraint: NSLayoutConstraint?
 
     override public init(frame: CGRect) {
         super.init(frame: frame)
@@ -60,12 +63,18 @@ public final class FooterView: UIView {
         addSubview(pageIndicatorStack)
         continueButton.addTarget(self, action: #selector(continueButtonTapped), for: .touchUpInside)
 
-        let layout = Theme.fallback.layout
-        let labelSectionHeight = layout.footerWelcomeLabelTopMargin + layout.footerWelcomeLabelHeight + layout.footerWelcomeLabelMarginToButton
-        let containerHeight = welcomeLabelContainer.heightAnchor.constraint(equalToConstant: labelSectionHeight)
+        let containerHeight = welcomeLabelContainer.heightAnchor.constraint(equalToConstant: 0)
         welcomeLabelContainerHeightConstraint = containerHeight
-        let buttonHeight = continueButton.heightAnchor.constraint(equalToConstant: layout.footerButtonHeight)
+        let buttonHeight = continueButton.heightAnchor.constraint(equalToConstant: 0)
         continueButtonHeightConstraint = buttonHeight
+        let welcomeTop = welcomeLabel.topAnchor.constraint(equalTo: welcomeLabelContainer.topAnchor, constant: 0)
+        welcomeLabelTopConstraint = welcomeTop
+        let welcomeHeight = welcomeLabel.heightAnchor.constraint(equalToConstant: 0)
+        welcomeLabelHeightConstraint = welcomeHeight
+        let pageIndicatorTop = pageIndicatorStack.topAnchor.constraint(equalTo: continueButton.bottomAnchor, constant: 0)
+        pageIndicatorTopConstraint = pageIndicatorTop
+        let continueButtonMatchWidth = continueButton.widthAnchor.constraint(equalTo: widthAnchor)
+        continueButtonMatchWidth.priority = .defaultHigh
 
         continueButton.setContentCompressionResistancePriority(.required, for: .vertical)
 
@@ -75,14 +84,17 @@ public final class FooterView: UIView {
             welcomeLabelContainer.trailingAnchor.constraint(equalTo: trailingAnchor),
             containerHeight,
             continueButton.topAnchor.constraint(equalTo: welcomeLabelContainer.bottomAnchor),
-            continueButton.leadingAnchor.constraint(equalTo: leadingAnchor),
-            continueButton.trailingAnchor.constraint(equalTo: trailingAnchor),
+            continueButton.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor),
+            continueButton.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
+            continueButton.centerXAnchor.constraint(equalTo: centerXAnchor),
+            continueButton.widthAnchor.constraint(lessThanOrEqualToConstant: 500),
+            continueButtonMatchWidth,
             buttonHeight,
-            welcomeLabel.topAnchor.constraint(equalTo: welcomeLabelContainer.topAnchor, constant: layout.footerWelcomeLabelTopMargin),
+            welcomeTop,
             welcomeLabel.leadingAnchor.constraint(equalTo: welcomeLabelContainer.leadingAnchor),
             welcomeLabel.trailingAnchor.constraint(equalTo: welcomeLabelContainer.trailingAnchor),
-            welcomeLabel.heightAnchor.constraint(equalToConstant: layout.footerWelcomeLabelHeight),
-            pageIndicatorStack.topAnchor.constraint(equalTo: continueButton.bottomAnchor, constant: layout.footerPageIndicatorTopMargin),
+            welcomeHeight,
+            pageIndicatorTop,
             pageIndicatorStack.centerXAnchor.constraint(equalTo: centerXAnchor),
             pageIndicatorStack.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
@@ -98,6 +110,9 @@ public final class FooterView: UIView {
         welcomeLabel.applyTitle2Style(theme: theme)
         welcomeLabelContainerHeightConstraint?.constant = theme.layout.footerWelcomeLabelTopMargin + theme.layout.footerWelcomeLabelHeight + theme.layout.footerWelcomeLabelMarginToButton
         continueButtonHeightConstraint?.constant = theme.layout.footerButtonHeight
+        welcomeLabelTopConstraint?.constant = theme.layout.footerWelcomeLabelTopMargin
+        welcomeLabelHeightConstraint?.constant = theme.layout.footerWelcomeLabelHeight
+        pageIndicatorTopConstraint?.constant = theme.layout.footerPageIndicatorTopMargin
         continueButton.apply(theme: theme)
         updatePageIndicatorAppearance()
     }
@@ -106,7 +121,8 @@ public final class FooterView: UIView {
         currentPageIndex = max(0, min(pageIndex, max(1, totalPages) - 1))
         pageCount = max(1, totalPages)
 
-        let layout = (theme ?? Theme.fallback).layout
+        guard let theme else { return }
+        let layout = theme.layout
         let dotSize = layout.footerPageIndicatorDotSize
         pageIndicatorStack.spacing = layout.footerPageIndicatorDotSpacing
 
@@ -138,7 +154,8 @@ public final class FooterView: UIView {
     }
 
     public func setAppearProgress(_ progress: CGFloat) {
-        let layout = (theme ?? Theme.fallback).layout
+        guard let theme else { return }
+        let layout = theme.layout
         let slideDistance = layout.footerTotalHeight + layout.footerBottomPadding + layout.footerSlideOffset
         let eased = progress.easeOutBack()
         let y = slideDistance * (1 - eased)
@@ -154,7 +171,8 @@ public final class FooterView: UIView {
 
     public func setWelcomeLabelProgress(_ progress: CGFloat) {
         let clamped = min(1, max(0, progress))
-        let layout = (theme ?? Theme.fallback).layout
+        guard let theme else { return }
+        let layout = theme.layout
         let visibleFactor = 1 - clamped
 
         let labelSectionHeight = layout.footerWelcomeLabelTopMargin + layout.footerWelcomeLabelHeight + layout.footerWelcomeLabelMarginToButton
@@ -165,7 +183,8 @@ public final class FooterView: UIView {
 
     public func setVisibilityProgress(_ progress: CGFloat) {
         let clamped = min(1, max(0, progress))
-        let layout = (theme ?? Theme.fallback).layout
+        guard let theme else { return }
+        let layout = theme.layout
         let slideDistance = layout.footerTotalHeight + layout.footerBottomPadding + layout.footerSlideOffset
         transform = CGAffineTransform(translationX: 0, y: slideDistance * clamped)
         isHidden = clamped >= 1

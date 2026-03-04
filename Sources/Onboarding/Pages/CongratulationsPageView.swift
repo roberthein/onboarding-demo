@@ -2,6 +2,8 @@ import UIKit
 
 public final class CongratulationsPageView: ScrollablePageView {
     private var skillLevel: SkillLevel?
+    private var stackLeadingConstraint: NSLayoutConstraint?
+    private var stackTrailingConstraint: NSLayoutConstraint?
 
     private lazy var titleLabel: UILabel = {
         let label = UILabel()
@@ -42,10 +44,14 @@ public final class CongratulationsPageView: ScrollablePageView {
         stack.addArrangedSubview(titleLabel)
         stack.addArrangedSubview(subtitleLabel)
         centeredContentView.addSubview(stack)
+        let leading = stack.leadingAnchor.constraint(equalTo: centeredContentView.leadingAnchor, constant: 0)
+        let trailing = stack.trailingAnchor.constraint(equalTo: centeredContentView.trailingAnchor, constant: 0)
+        stackLeadingConstraint = leading
+        stackTrailingConstraint = trailing
         NSLayoutConstraint.activate([
             stack.topAnchor.constraint(equalTo: centeredContentView.topAnchor),
-            stack.leadingAnchor.constraint(equalTo: centeredContentView.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: centeredContentView.trailingAnchor),
+            leading,
+            trailing,
             stack.bottomAnchor.constraint(equalTo: centeredContentView.bottomAnchor),
         ])
     }
@@ -64,6 +70,8 @@ public final class CongratulationsPageView: ScrollablePageView {
 extension CongratulationsPageView: PageContentView {
     public func apply(theme: Theme) {
         stack.spacing = theme.spacing.item
+        stackLeadingConstraint?.constant = theme.margin.outer
+        stackTrailingConstraint?.constant = -theme.margin.outer
         titleLabel.applyTitleStyle(theme: theme)
         subtitleLabel.applySubtitleStyle(theme: theme)
     }

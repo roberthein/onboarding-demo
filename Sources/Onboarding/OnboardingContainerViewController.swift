@@ -18,14 +18,14 @@ public final class OnboardingContainerViewController: UIViewController {
     private var appearAnimator: DisplayLinkAnimator?
     private var appearAnimationTask: Task<Void, Never>?
 
-    private lazy var mainContentView: MainContentView = {
-        MainContentView(
-            accolade: Accolade(icon: .appleLogo, title: LocalizedStrings.MainContent.appleDesignAward, subtitle: LocalizedStrings.MainContent.winner)
-        )
+    private lazy var mainContentPageView: MainContentPageView = {
+        let view = MainContentPageView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
     }()
 
     private lazy var accoladesPageView: AccoladesPageView = {
-        let view = AccoladesPageView(accolades: DefaultAccolades.accolades)
+        let view = AccoladesPageView()
         view.backgroundColor = .clear
         return view
     }()
@@ -44,12 +44,12 @@ public final class OnboardingContainerViewController: UIViewController {
         return view
     }()
 
-    private var pageAppearanceUpdatables: [PageAppearanceUpdatable] {
-        [mainContentView, accoladesPageView, skillPickerPageView, congratulationsPageView]
+    private var pageAppearanceUpdatables: [Int: PageAppearanceUpdatable] {
+        [2: skillPickerPageView, 3: congratulationsPageView]
     }
 
     private var scrollTranslationApplicables: [ScrollTranslationApplicable] {
-        [mainContentView, skillPickerPageView]
+        [mainContentPageView, skillPickerPageView]
     }
 
     private var containerView: OnboardingContainerView {
@@ -84,24 +84,21 @@ public final class OnboardingContainerViewController: UIViewController {
             self?.viewModel.selectSkillLevel(level)
         }
 
-        let pageHosts: [UIView] = [mainContentView, accoladesPageView, skillPickerPageView, congratulationsPageView]
+        let pageHosts: [UIView] = [mainContentPageView, accoladesPageView, skillPickerPageView, congratulationsPageView]
         containerView.pagedScrollView.configure(numberOfPages: viewModel.totalPages, pageViews: pageHosts)
         containerView.pagedScrollView.onScroll = { [weak self] scrollView in
             guard let self else { return }
             let contentOffsetX = scrollView.contentOffset.x
             let pageWidth = scrollView.bounds.width > 0
                 ? scrollView.bounds.width
-                : self.containerView.pagedScrollView.bounds.width
+                : containerView.pagedScrollView.bounds.width
             guard pageWidth > 0 else { return }
-            self.scrollTranslationApplicables.forEach { $0.applyScrollTranslation(contentOffsetX: contentOffsetX, pageWidth: pageWidth) }
+            scrollTranslationApplicables.forEach { $0.applyScrollTranslation(contentOffsetX: contentOffsetX, pageWidth: pageWidth) }
         }
 
         progressCoordinator.connect(to: containerView.pagedScrollView.progressStream())
 
         setupFooter()
-
-        lastTheme = .figma
-        applyThemeUpdates(theme: .figma, isDebugEnabled: false)
 
         progressTask = Task { @MainActor [weak self] in
             guard let self else { return }
@@ -147,11 +144,17 @@ public final class OnboardingContainerViewController: UIViewController {
 
     private func performAppearAnimation() async {
         guard !hasAppearAnimationCompleted else { return }
-        let theme = lastTheme ?? .figma
+        let theme: Theme
+        if let currentTheme = lastTheme {
+            theme = currentTheme
+        } else {
+            theme = await themeProvider.currentTheme
+        }
+        lastTheme = theme
         let duration = theme.motion.duration * appearAnimationDurationMultiplier
         let startTime = CACurrentMediaTime()
         containerView.setGradientProgress(-1)
-        mainContentView.setAppearProgress(0)
+        mainContentPageView.setAppearProgress(0)
         containerView.footerView.setAppearProgress(0)
         containerView.pagedScrollView.scrollView.isScrollEnabled = false
 
@@ -167,9 +170,9 @@ public final class OnboardingContainerViewController: UIViewController {
             }
             let progress = -1 + normalizedProgress
             containerView.setGradientProgress(progress)
-            mainContentView.setAppearProgress(normalizedProgress)
-            mainContentView.updateAppearance(expansionProgress: 0)
-            mainContentView.setVerticalOffsetProgress(progress)
+            mainContentPageView.setAppearProgress(normalizedProgress)
+            mainContentPageView.updateAppearance(progress: 0)
+            mainContentPageView.setVerticalOffsetProgress(progress)
             let appearAnimation = theme.appearAnimation
             let footerProgress = max(0, (normalizedProgress - appearAnimation.footerStartT) / (appearAnimation.footerEndT - appearAnimation.footerStartT))
             containerView.footerView.setAppearProgress(footerProgress)
@@ -180,11 +183,11 @@ public final class OnboardingContainerViewController: UIViewController {
                 containerView.pagedScrollView.scrollView.isScrollEnabled = true
                 if let snapshot = lastScrollSnapshot {
                     containerView.setGradientProgress(snapshot.overallProgress)
-                    mainContentView.setVerticalOffsetProgress(snapshot.overallProgress)
+                    mainContentPageView.setVerticalOffsetProgress(snapshot.overallProgress)
                     let expansionProgress = snapshot.overallProgress.clamped(to: 0...1)
-                    mainContentView.updateAppearance(expansionProgress: expansionProgress)
+                    mainContentPageView.updateAppearance(progress: expansionProgress)
                 } else {
-                    mainContentView.updateAppearance(expansionProgress: 0)
+                    mainContentPageView.updateAppearance(progress: 0)
                 }
                 refreshFooterState()
             }
@@ -197,17 +200,12 @@ public final class OnboardingContainerViewController: UIViewController {
     ) {
         super.viewWillTransition(to: size, with: coordinator)
         let savedPageIndex = containerView.pagedScrollView.currentPageIndex
-        Task { @MainActor in
-            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-                coordinator.animate(alongsideTransition: { [weak self] _ in
-                    self?.view.layoutIfNeeded()
-                    self?.containerView.pagedScrollView.scrollToPage(savedPageIndex, animated: false)
-                }, completion: { [weak self] _ in
-                    self?.refreshFooterState(activePageIndex: savedPageIndex)
-                    continuation.resume()
-                })
-            }
-        }
+        coordinator.animate(alongsideTransition: { [weak self] _ in
+            guard let self else { return }
+            view.setNeedsLayout()
+            view.layoutIfNeeded()
+            containerView.pagedScrollView.scrollToPage(savedPageIndex, animated: false)
+        })
     }
 
     private func setupThemeStream() {
@@ -261,16 +259,19 @@ public final class OnboardingContainerViewController: UIViewController {
     private func applyThemeUpdates(theme: Theme, isDebugEnabled: Bool) {
         let menu = buildSettingsMenu(theme: theme, isDebugEnabled: isDebugEnabled)
         containerView.setSettingsMenu(menu, image: AppIcon.gearshape.image(theme: theme), tintColor: theme.color.textPrimary)
+        containerView.setLastPageShaderSpeedMultiplier(SkillLevel.lasersSpeedMultiplier(for: viewModel.skillLevel))
         applyDebugMode(isDebugEnabled: isDebugEnabled, theme: theme)
         containerView.apply(theme: theme)
-        mainContentView.apply(theme: theme)
-        accoladesPageView.apply(theme: theme)
+        mainContentPageView.apply(theme: theme)
         skillPickerPageView.apply(theme: theme)
         congratulationsPageView.apply(theme: theme)
         if let snapshot = lastScrollSnapshot {
             let congratsProgress = snapshot.progress(forPage: OnboardingPage.done.rawValue)
             skillPickerPageView.setCongratsPageProgress(congratsProgress)
             containerView.setDecibelOverlay(visible: congratsProgress > 0, skillLevel: viewModel.skillLevel, progress: congratsProgress)
+            containerView.setLastPageShaderProgress(lastPageShaderProgress(from: snapshot))
+        } else {
+            containerView.setLastPageShaderProgress(0)
         }
         refreshFooterState()
         refreshDebugOverlay()
@@ -312,26 +313,26 @@ public final class OnboardingContainerViewController: UIViewController {
     private func applyDebugMode(isDebugEnabled: Bool, theme: Theme) {
         containerView.setDebugModeEnabled(isDebugEnabled, themeBackground: theme.color.primaryBackground)
         containerView.pagedScrollView.setDebugModeEnabled(isDebugEnabled)
-        mainContentView.setDebugModeEnabled(isDebugEnabled)
+        mainContentPageView.setDebugModeEnabled(isDebugEnabled)
         accoladesPageView.setDebugModeEnabled(isDebugEnabled)
         skillPickerPageView.setDebugModeEnabled(isDebugEnabled)
         congratulationsPageView.setDebugModeEnabled(isDebugEnabled)
     }
 
     private func refreshDebugOverlay() {
-        let theme = lastTheme ?? .figma
+        guard let theme = lastTheme else { return }
         containerView.setDebugInfo(scrollSnapshot: lastScrollSnapshot, theme: theme)
     }
 
     private func handleProgress(_ snapshot: ScrollProgressSnapshot) {
         if hasAppearAnimationCompleted {
             containerView.setGradientProgress(snapshot.overallProgress)
-            mainContentView.setVerticalOffsetProgress(snapshot.overallProgress)
+            mainContentPageView.setVerticalOffsetProgress(snapshot.overallProgress)
             let expansionProgress = snapshot.overallProgress.clamped(to: 0...1)
-            mainContentView.updateAppearance(expansionProgress: expansionProgress)
+            mainContentPageView.updateAppearance(progress: expansionProgress)
         }
         snapshot.pageProgress.forEach { progressItem in
-            guard let updatable = pageAppearanceUpdatables[safe: progressItem.pageIndex] else { return }
+            guard let updatable = pageAppearanceUpdatables[progressItem.pageIndex] else { return }
             updatable.updateAppearance(progress: progressItem.progress)
         }
         let congratsProgress = snapshot.progress(forPage: OnboardingPage.done.rawValue)
@@ -341,7 +342,14 @@ public final class OnboardingContainerViewController: UIViewController {
             skillLevel: viewModel.skillLevel,
             progress: congratsProgress
         )
+        containerView.setLastPageShaderProgress(lastPageShaderProgress(from: snapshot))
         updateFooter(snapshot: snapshot)
+    }
+
+    private func lastPageShaderProgress(from snapshot: ScrollProgressSnapshot) -> CGFloat {
+        guard viewModel.isLastPageIncluded else { return 0 }
+        let doneProgress = snapshot.progress(forPage: OnboardingPage.done.rawValue)
+        return ((doneProgress - 0.5) / 0.5).clamped(to: 0...1)
     }
 
     private func setupFooter() {
@@ -352,6 +360,7 @@ public final class OnboardingContainerViewController: UIViewController {
             guard let self else { return }
             let stream = viewModel.skillLevelStream()
             for await _ in stream {
+                containerView.setLastPageShaderSpeedMultiplier(SkillLevel.lasersSpeedMultiplier(for: viewModel.skillLevel))
                 refreshFooterState()
                 refreshCongratulationsContent()
             }
@@ -389,7 +398,7 @@ public final class OnboardingContainerViewController: UIViewController {
     private func refreshFooterState(activePageIndex: Int? = nil, progressToFourthScreen: CGFloat? = nil, progressToPage1: CGFloat? = nil) {
         let pageIndex = activePageIndex ?? containerView.pagedScrollView.currentPageIndex
         let footer = containerView.footerView
-        let theme = lastTheme ?? .figma
+        guard let theme = lastTheme else { return }
 
         let progress: CGFloat = viewModel.isLastPageIncluded ? 0 : (progressToFourthScreen ?? 0)
 

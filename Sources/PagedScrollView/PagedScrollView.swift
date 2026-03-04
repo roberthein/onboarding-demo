@@ -11,6 +11,14 @@ public final class PagedScrollView: UIView {
     private var isDebugModeEnabled: Bool = false
     private var isLastPageIncluded: Bool = false
     private var pageContainers: [UIView] = []
+    private var firstPageLeadingConstraint: NSLayoutConstraint?
+
+    private lazy var touchForwardingOverlay: TouchForwardingOverlay = {
+        let overlay = TouchForwardingOverlay()
+        overlay.translatesAutoresizingMaskIntoConstraints = false
+        overlay.pagedScrollView = self
+        return overlay
+    }()
 
     public lazy var scrollView: UIScrollView = {
         let scrollView = UIScrollView()
@@ -20,7 +28,7 @@ public final class PagedScrollView: UIView {
         scrollView.bounces = true
         scrollView.alwaysBounceHorizontal = true
         scrollView.contentInsetAdjustmentBehavior = .never
-        scrollView.clipsToBounds = false
+        scrollView.clipsToBounds = true
         scrollView.delegate = self
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.backgroundColor = .clear
@@ -44,6 +52,8 @@ public final class PagedScrollView: UIView {
     private func buildView() {
         backgroundColor = .clear
         addSubview(scrollView)
+        addSubview(touchForwardingOverlay)
+        bringSubviewToFront(touchForwardingOverlay)
         installDebugOverlay(tintColor: UIColor.systemPurple.withAlphaComponent(0.12))
         scrollView.addSubview(contentStack)
         let contentGuide = scrollView.contentLayoutGuide
@@ -53,6 +63,10 @@ public final class PagedScrollView: UIView {
             scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            touchForwardingOverlay.topAnchor.constraint(equalTo: scrollView.topAnchor),
+            touchForwardingOverlay.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
+            touchForwardingOverlay.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
+            touchForwardingOverlay.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
             contentStack.topAnchor.constraint(equalTo: contentGuide.topAnchor),
             contentStack.leadingAnchor.constraint(equalTo: contentGuide.leadingAnchor),
             contentStack.trailingAnchor.constraint(equalTo: contentGuide.trailingAnchor),
@@ -78,24 +92,36 @@ public final class PagedScrollView: UIView {
         self.numberOfPages = numberOfPages
         pageContainers = []
         contentStack.arrangedSubviews.forEach { contentStack.removeArrangedSubview($0); $0.removeFromSuperview() }
+        firstPageLeadingConstraint = nil
+        let frameGuide = scrollView.frameLayoutGuide
         for (index, view) in pageViews.enumerated() {
             view.translatesAutoresizingMaskIntoConstraints = false
             let container = UIView()
             container.translatesAutoresizingMaskIntoConstraints = false
             container.clipsToBounds = false
             container.addSubview(view)
-            NSLayoutConstraint.activate([
-                view.topAnchor.constraint(equalTo: container.topAnchor),
-                view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-                view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-                view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            ])
+            if index == 0 {
+                let leading = view.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 0)
+                firstPageLeadingConstraint = leading
+                NSLayoutConstraint.activate([
+                    view.topAnchor.constraint(equalTo: container.topAnchor),
+                    leading,
+                    view.widthAnchor.constraint(equalTo: container.widthAnchor),
+                    view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+                ])
+            } else {
+                NSLayoutConstraint.activate([
+                    view.topAnchor.constraint(equalTo: container.topAnchor),
+                    view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                    view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                    view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+                ])
+            }
             pageContainers.append(container)
             if index < numberOfPages - 1 {
                 contentStack.addArrangedSubview(container)
             }
         }
-        let frameGuide = scrollView.frameLayoutGuide
         let widthConstraints = (0 ..< min(pageContainers.count, numberOfPages - 1)).map { i in
             pageContainers[i].widthAnchor.constraint(equalTo: frameGuide.widthAnchor)
         }
@@ -200,15 +226,36 @@ public final class PagedScrollView: UIView {
 
     override public func layoutSubviews() {
         super.layoutSubviews()
+
+        updateFirstPageLeadingConstraint()
         reportProgress()
     }
 }
 
 extension PagedScrollView: UIScrollViewDelegate {
     public func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        updateFirstPageLeadingConstraint()
         reportProgress()
         firePageSnapHapticIfNeeded()
         onScroll?(scrollView)
+    }
+
+    private func updateFirstPageLeadingConstraint() {
+        guard let leading = firstPageLeadingConstraint else { return }
+        let width = max(1, scrollView.bounds.width)
+        let offsetX = scrollView.contentOffset.x
+        let translationX = offsetX / width <= 1 ? offsetX : width
+        leading.constant = translationX
+    }
+
+    func firstPageViewForTouchForwarding() -> UIView? {
+        guard let firstContainer = pageContainers.first, !firstContainer.subviews.isEmpty else { return nil }
+        return firstContainer.subviews.first
+    }
+
+    func isOnFirstOrSecondPageForTouchForwarding() -> Bool {
+        let width = max(1, scrollView.bounds.width)
+        return scrollView.contentOffset.x <= width
     }
 
     private func firePageSnapHapticIfNeeded() {
@@ -216,5 +263,30 @@ extension PagedScrollView: UIScrollViewDelegate {
         guard page != lastHapticPageIndex else { return }
         lastHapticPageIndex = page
         HapticsManager.light()
+    }
+}
+
+private final class TouchForwardingOverlay: UIView {
+    weak var pagedScrollView: PagedScrollView?
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isUserInteractionEnabled = true
+        backgroundColor = .clear
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        isUserInteractionEnabled = true
+        backgroundColor = .clear
+    }
+
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        guard let pagedScrollView, pagedScrollView.isOnFirstOrSecondPageForTouchForwarding(),
+              let firstPageView = pagedScrollView.firstPageViewForTouchForwarding() else {
+            return nil
+        }
+        let pointInPageView = convert(point, to: firstPageView)
+        return firstPageView.hitTest(pointInPageView, with: event)
     }
 }

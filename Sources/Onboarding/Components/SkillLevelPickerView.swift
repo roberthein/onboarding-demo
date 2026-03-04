@@ -37,11 +37,17 @@ public final class SkillLevelPickerView: UIView {
 
         addSubview(stackView)
 
+        let matchWidth = stackView.widthAnchor.constraint(equalTo: widthAnchor)
+        matchWidth.priority = .defaultHigh
+
         NSLayoutConstraint.activate([
             stackView.topAnchor.constraint(equalTo: topAnchor),
-            stackView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            stackView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            stackView.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor),
+            stackView.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
             stackView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            stackView.centerXAnchor.constraint(equalTo: centerXAnchor),
+            stackView.widthAnchor.constraint(lessThanOrEqualToConstant: 500),
+            matchWidth,
         ])
     }
 

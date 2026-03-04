@@ -7,9 +7,6 @@ public final class GradientBackgroundView: UIView {
     private var primaryColor: UIColor = .black
     private var secondaryColor: UIColor = .darkGray
     private var lastProgress: CGFloat = -1
-    private var decibelOverlayVisible: Bool = false
-    private var decibelOverlayProgress: CGFloat = 0
-    private var decibelSkillLevel: SkillLevel?
 
     override public init(frame: CGRect) {
         super.init(frame: frame)
@@ -31,10 +28,7 @@ public final class GradientBackgroundView: UIView {
         let view = GradientView(
             progress: lastProgress,
             primaryColor: primaryColor,
-            secondaryColor: secondaryColor,
-            decibelOverlayVisible: decibelOverlayVisible,
-            decibelOverlayProgress: decibelOverlayProgress,
-            decibelSkillLevel: decibelSkillLevel
+            secondaryColor: secondaryColor
         )
         let hosting = UIHostingController(rootView: view)
         hosting.view.translatesAutoresizingMaskIntoConstraints = false
@@ -72,22 +66,12 @@ public final class GradientBackgroundView: UIView {
         updateHostedView()
     }
 
-    public func setDecibelOverlay(visible: Bool, skillLevel: SkillLevel?, progress: CGFloat) {
-        decibelOverlayVisible = visible
-        decibelSkillLevel = skillLevel
-        decibelOverlayProgress = progress
-        updateHostedView()
-    }
-
     private func updateHostedView() {
         guard let hosting = hostingController else { return }
         hosting.rootView = GradientView(
             progress: lastProgress,
             primaryColor: primaryColor,
-            secondaryColor: secondaryColor,
-            decibelOverlayVisible: decibelOverlayVisible,
-            decibelOverlayProgress: decibelOverlayProgress,
-            decibelSkillLevel: decibelSkillLevel
+            secondaryColor: secondaryColor
         )
     }
 }

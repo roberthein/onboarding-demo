@@ -3,15 +3,16 @@ import UIKit
 public final class MainContentView: UIView {
     private var accoladeCardView: AccoladeCardView?
     private var theme: Theme?
-    private var translationX: CGFloat = 0
-    private var verticalOffsetProgress: CGFloat = -1
     private var appearProgress: CGFloat = 1
+    private var expansionProgress: CGFloat = 0
+    private var compactConstraints: [NSLayoutConstraint] = []
+    private var expandedConstraints: [NSLayoutConstraint] = []
+    private var expansionAnimator: UIViewPropertyAnimator?
 
     private lazy var firstImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentMode = .center
-        imageView.clipsToBounds = true
         imageView.image = UIImage(named: "djay")
         imageView.setContentHuggingPriority(.required, for: .vertical)
         return imageView
@@ -21,7 +22,6 @@ public final class MainContentView: UIView {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentMode = .center
-        imageView.clipsToBounds = true
         imageView.image = UIImage(named: "hero")
         imageView.setContentHuggingPriority(.required, for: .vertical)
         imageView.alpha = 0
@@ -45,36 +45,10 @@ public final class MainContentView: UIView {
         return container
     }()
 
-    private lazy var expandableStack: UIStackView = {
-        let stackView = UIStackView()
-        stackView.axis = .vertical
-        stackView.spacing = 0
-        stackView.alignment = .fill
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        return stackView
-    }()
-
-    private lazy var topSpacer: UIView = {
-        let spacer = UIView()
-        spacer.translatesAutoresizingMaskIntoConstraints = false
-        spacer.setContentHuggingPriority(.defaultLow, for: .vertical)
-        return spacer
-    }()
-
-    private lazy var bottomSpacer: UIView = {
-        let spacer = UIView()
-        spacer.translatesAutoresizingMaskIntoConstraints = false
-        spacer.setContentHuggingPriority(.defaultLow, for: .vertical)
-        return spacer
-    }()
-
-    private lazy var contentStack: UIStackView = {
-        let stackView = UIStackView()
-        stackView.axis = .vertical
-        stackView.spacing = 0
-        stackView.alignment = .fill
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        return stackView
+    private lazy var contentView: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
     }()
 
     private let accolade: Accolade
@@ -96,13 +70,15 @@ public final class MainContentView: UIView {
     }
 
     private func buildView() {
-        clipsToBounds = false
-        contentStack.clipsToBounds = false
-
-        addSubview(contentStack)
+        addSubview(contentView)
+        contentView.addSubview(firstImageView)
+        contentView.addSubview(secondImageView)
+        contentView.addSubview(label)
+        contentView.addSubview(accoladeContainerView)
         installDebugOverlay(tintColor: UIColor.systemTeal.withAlphaComponent(0.12))
 
         let card = AccoladeCardView()
+        card.translatesAutoresizingMaskIntoConstraints = false
         card.configure(accolade: accolade)
         accoladeCardView = card
         accoladeContainerView.addSubview(card)
@@ -113,56 +89,28 @@ public final class MainContentView: UIView {
             card.bottomAnchor.constraint(equalTo: accoladeContainerView.bottomAnchor),
         ])
 
-        expandableStack.addArrangedSubview(secondImageView)
-        expandableStack.addArrangedSubview(label)
-        expandableStack.addArrangedSubview(accoladeContainerView)
-
-        contentStack.addArrangedSubview(topSpacer)
-        contentStack.addArrangedSubview(firstImageView)
-        contentStack.addArrangedSubview(expandableStack)
-        contentStack.addArrangedSubview(bottomSpacer)
-
         NSLayoutConstraint.activate([
-            contentStack.topAnchor.constraint(equalTo: topAnchor),
-            contentStack.leadingAnchor.constraint(equalTo: leadingAnchor),
-            contentStack.trailingAnchor.constraint(equalTo: trailingAnchor),
-            contentStack.bottomAnchor.constraint(equalTo: bottomAnchor),
-            topSpacer.heightAnchor.constraint(equalTo: bottomSpacer.heightAnchor),
+            contentView.topAnchor.constraint(equalTo: topAnchor),
+            contentView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            contentView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            firstImageView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            firstImageView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            secondImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            secondImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            label.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            label.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            accoladeContainerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            accoladeContainerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
         ])
 
+        rebuildExpansionConstraints()
         updateExpandableVisibility(progress: 0)
-        updateTransform()
-    }
-
-    public func updateAppearance(expansionProgress: CGFloat) {
-        updateExpandableVisibility(progress: expansionProgress)
     }
 
     public func setAppearProgress(_ progress: CGFloat) {
         appearProgress = progress.clamped(to: 0...1)
         firstImageView.alpha = appearProgress
-        topSpacer.alpha = appearProgress
-        bottomSpacer.alpha = appearProgress
-    }
-
-    public func setVerticalOffsetProgress(_ progress: CGFloat) {
-        verticalOffsetProgress = progress.clamped(to: -1...1)
-        updateTransform()
-    }
-
-    private func updateTransform() {
-        let mainContent = theme?.mainContent ?? Theme.fallback.mainContent
-        let rangeEnd = mainContent.scrollPhaseStartY - mainContent.verticalOffsetEnd
-        let rawMapped = verticalOffsetProgress.map(from: -1...1, to: 0...rangeEnd)
-        let translationY: CGFloat
-        if verticalOffsetProgress < 0 {
-            let normalized = (verticalOffsetProgress + 1)
-            let eased = normalized.easeOutBack()
-            translationY = mainContent.scrollPhaseStartY - eased.map(from: 0...1, to: 0...mainContent.appearPhaseEndY)
-        } else {
-            translationY = mainContent.scrollPhaseStartY - rawMapped
-        }
-        transform = CGAffineTransform(translationX: translationX, y: translationY)
     }
 
     public func setDebugModeEnabled(_ enabled: Bool) {
@@ -170,48 +118,59 @@ public final class MainContentView: UIView {
     }
 
     private func updateExpandableVisibility(progress: CGFloat) {
-        let mainContent = theme?.mainContent ?? Theme.fallback.mainContent
-        let alpha = progress.map(from: 0...1, to: 0...1)
-        let scale = mainContent.labelScaleStart + (1 - mainContent.labelScaleStart) * progress
-        let scaleTransform = CGAffineTransform(scaleX: scale, y: scale)
+        expansionProgress = progress.clamped(to: 0...1)
+        let alpha = expansionProgress.map(from: 0...1 , to: -1...1)
 
         secondImageView.alpha = alpha
-        secondImageView.transform = scaleTransform.translatedBy(x: 0, y: (1 - progress) * mainContent.expandableTranslationY)
         label.alpha = alpha
-        label.transform = scaleTransform.translatedBy(x: 0, y: (mainContent.labelScaleStartFactor - progress) * mainContent.expandableLabelTranslationY)
         accoladeContainerView.alpha = alpha
-        accoladeContainerView.transform = scaleTransform.translatedBy(x: 0, y: (mainContent.labelScaleStartFactor - progress) * mainContent.expandableLabelTranslationY)
+        expansionAnimator?.fractionComplete = expansionProgress
+    }
+
+    private func rebuildExpansionConstraints() {
+        guard let theme else { return }
+        NSLayoutConstraint.deactivate(compactConstraints + expandedConstraints)
+
+        compactConstraints = [
+            firstImageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+        ]
+
+        expandedConstraints = [
+            firstImageView.bottomAnchor.constraint(equalTo: secondImageView.topAnchor, constant: -theme.margin.outer),
+            secondImageView.bottomAnchor.constraint(equalTo: label.topAnchor, constant: -theme.margin.outer),
+            label.bottomAnchor.constraint(equalTo: accoladeContainerView.topAnchor, constant: -theme.margin.outer),
+            accoladeContainerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+        ]
+
+        NSLayoutConstraint.activate(compactConstraints)
+        layoutIfNeeded()
+
+        expansionAnimator?.stopAnimation(true)
+        let animator = UIViewPropertyAnimator(duration: 0.4, curve: .linear) { [weak self] in
+            guard let self else { return }
+            NSLayoutConstraint.deactivate(self.compactConstraints)
+            NSLayoutConstraint.activate(self.expandedConstraints)
+            self.layoutIfNeeded()
+        }
+        animator.startAnimation()
+        animator.pauseAnimation()
+        animator.fractionComplete = expansionProgress
+        expansionAnimator = animator
     }
 }
 
 extension MainContentView: PageAppearanceUpdatable {
-    public func updateAppearance(progress: CGFloat) {}
-}
-
-extension MainContentView: ScrollTranslationApplicable {
-
-    public func applyScrollTranslation(contentOffsetX: CGFloat, pageWidth: CGFloat) {
-        guard pageWidth > 0 else { return }
-        let overallProgress = contentOffsetX / pageWidth
-        translationX = overallProgress <= 1 ? contentOffsetX : pageWidth
-        updateTransform()
+    public func updateAppearance(progress: CGFloat) {
+        updateExpandableVisibility(progress: progress)
     }
 }
 
 extension MainContentView: ThemedView {
     public func apply(theme: Theme) {
         self.theme = theme
-        let spacing = theme.spacing.content
-        contentStack.spacing = spacing
-        contentStack.layoutMargins = UIEdgeInsets(
-            top: theme.margin.inner,
-            left: spacing,
-            bottom: theme.margin.inner,
-            right: spacing
-        )
-        contentStack.isLayoutMarginsRelativeArrangement = true
-        expandableStack.spacing = spacing
+        rebuildExpansionConstraints()
         label.applyLargeTitleStyle(theme: theme)
         accoladeCardView?.apply(theme: theme)
+        updateExpandableVisibility(progress: expansionProgress)
     }
 }

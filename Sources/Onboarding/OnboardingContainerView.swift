@@ -7,6 +7,18 @@ public final class OnboardingContainerView: UIView {
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
+    
+    public lazy var lastPageShaderBackgroundView: LasersHostingView = {
+        let view = LasersHostingView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
+    public lazy var decibelOverlayBackgroundView: DecibelOverlayBackgroundView = {
+        let view = DecibelOverlayBackgroundView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
 
     public lazy var pagedScrollView: PagedScrollView = {
         let view = PagedScrollView()
@@ -48,6 +60,8 @@ public final class OnboardingContainerView: UIView {
 
     private func buildView() {
         addSubview(gradientBackgroundView)
+        addSubview(lastPageShaderBackgroundView)
+        addSubview(decibelOverlayBackgroundView)
         addSubview(pagedScrollView)
         addSubview(footerView)
         addSubview(settingsMenuButton)
@@ -59,7 +73,7 @@ public final class OnboardingContainerView: UIView {
         footerViewLeadingConstraint = footerView.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 0)
         footerViewTrailingConstraint = footerView.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: 0)
         footerViewBottomConstraint = footerView.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: 0)
-        footerViewHeightConstraint = footerView.heightAnchor.constraint(equalToConstant: Theme.fallback.layout.footerTotalHeight)
+        footerViewHeightConstraint = footerView.heightAnchor.constraint(equalToConstant: 0)
         settingsMenuTopConstraint = settingsMenuButton.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 0)
         settingsMenuTrailingConstraint = settingsMenuButton.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: 0)
         settingsMenuWidthConstraint = settingsMenuButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 0)
@@ -69,6 +83,14 @@ public final class OnboardingContainerView: UIView {
             gradientBackgroundView.leadingAnchor.constraint(equalTo: leadingAnchor),
             gradientBackgroundView.trailingAnchor.constraint(equalTo: trailingAnchor),
             gradientBackgroundView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            lastPageShaderBackgroundView.topAnchor.constraint(equalTo: topAnchor),
+            lastPageShaderBackgroundView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            lastPageShaderBackgroundView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            lastPageShaderBackgroundView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            decibelOverlayBackgroundView.topAnchor.constraint(equalTo: topAnchor),
+            decibelOverlayBackgroundView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            decibelOverlayBackgroundView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            decibelOverlayBackgroundView.bottomAnchor.constraint(equalTo: bottomAnchor),
             pagedScrollView.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor),
             pagedScrollView.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor),
             pagedScrollView.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor),
@@ -83,7 +105,20 @@ public final class OnboardingContainerView: UIView {
     }
 
     public func setDecibelOverlay(visible: Bool, skillLevel: SkillLevel?, progress: CGFloat) {
-        gradientBackgroundView.setDecibelOverlay(visible: visible, skillLevel: skillLevel, progress: visible ? progress : 0)
+        decibelOverlayBackgroundView.setOverlay(visible: visible, skillLevel: skillLevel, progress: visible ? progress : 0)
+    }
+    
+    public func setLastPageShaderProgress(_ progress: CGFloat) {
+        let clamped = progress.clamped(to: 0...1)
+        lastPageShaderBackgroundView.setVisibilityProgress(clamped)
+    }
+    
+    public func setLastPageShaderAccentColor(_ color: UIColor) {
+        lastPageShaderBackgroundView.setAccentColor(color)
+    }
+    
+    public func setLastPageShaderSpeedMultiplier(_ multiplier: CGFloat) {
+        lastPageShaderBackgroundView.setSpeedMultiplier(multiplier)
     }
 
     public func setFooterReservedHeight(_ height: CGFloat) {
@@ -127,10 +162,21 @@ public final class OnboardingContainerView: UIView {
     }
 }
 
+extension OnboardingContainerView {
+    override public func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window != nil {
+            lastPageShaderBackgroundView.prewarm()
+        }
+    }
+}
+
 extension OnboardingContainerView: ThemedView {
     public func apply(theme: Theme) {
         backgroundColor = .clear
         gradientBackgroundView.setColors(primary: theme.color.gradientPrimaryBackground, secondary: theme.color.gradientSecondaryBackground)
+        decibelOverlayBackgroundView.setColor(theme.color.gradientPrimaryBackground)
+        lastPageShaderBackgroundView.setAccentColor(theme.color.accent)
         footerViewLeadingConstraint?.constant = theme.layout.footerHorizontalPadding
         footerViewTrailingConstraint?.constant = -theme.layout.footerHorizontalPadding
         footerViewBottomConstraint?.constant = -theme.layout.footerBottomPadding

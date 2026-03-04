@@ -11,7 +11,6 @@ public enum Theme: String, CaseIterable, Sendable {
 
 extension Theme {
     public var id: String { rawValue }
-    public static var fallback: Theme { .figma }
 }
 
 public struct ThemeFonts: Sendable {
@@ -625,59 +624,10 @@ extension Theme {
 public struct ThemeMainContent: Sendable {
     let theme: Theme
 
-    public var verticalOffsetStart: CGFloat {
+    public var verticalOffset: CGFloat {
         switch theme {
-        case .figma: return AppStyle.MainContent.Figma.verticalOffsetStart
-        case .experimental: return AppStyle.MainContent.Experimental.verticalOffsetStart
-        }
-    }
-
-    public var verticalOffsetEnd: CGFloat {
-        switch theme {
-        case .figma: return AppStyle.MainContent.Figma.verticalOffsetEnd
-        case .experimental: return AppStyle.MainContent.Experimental.verticalOffsetEnd
-        }
-    }
-
-    public var appearPhaseEndY: CGFloat {
-        switch theme {
-        case .figma: return AppStyle.MainContent.Figma.appearPhaseEndY
-        case .experimental: return AppStyle.MainContent.Experimental.appearPhaseEndY
-        }
-    }
-
-    public var scrollPhaseStartY: CGFloat {
-        switch theme {
-        case .figma: return AppStyle.MainContent.Figma.scrollPhaseStartY
-        case .experimental: return AppStyle.MainContent.Experimental.scrollPhaseStartY
-        }
-    }
-
-    public var expandableTranslationY: CGFloat {
-        switch theme {
-        case .figma: return AppStyle.MainContent.Figma.expandableTranslationY
-        case .experimental: return AppStyle.MainContent.Experimental.expandableTranslationY
-        }
-    }
-
-    public var expandableLabelTranslationY: CGFloat {
-        switch theme {
-        case .figma: return AppStyle.MainContent.Figma.expandableLabelTranslationY
-        case .experimental: return AppStyle.MainContent.Experimental.expandableLabelTranslationY
-        }
-    }
-
-    public var labelScaleStart: CGFloat {
-        switch theme {
-        case .figma: return AppStyle.MainContent.Figma.labelScaleStart
-        case .experimental: return AppStyle.MainContent.Experimental.labelScaleStart
-        }
-    }
-
-    public var labelScaleStartFactor: CGFloat {
-        switch theme {
-        case .figma: return AppStyle.MainContent.Figma.labelScaleStartFactor
-        case .experimental: return AppStyle.MainContent.Experimental.labelScaleStartFactor
+        case .figma: return AppStyle.MainContent.Figma.verticalOffset
+        case .experimental: return AppStyle.MainContent.Experimental.verticalOffset
         }
     }
 }

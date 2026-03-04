@@ -2,6 +2,9 @@ import Foundation
 import CoreGraphics
 
 public enum SkillLevel: String, CaseIterable, Sendable {
+    case beginner = "Beginner"
+    case intermediate = "Intermediate"
+    case advanced = "Advanced"
 
     public struct HeadBobParams {
         public let freq1: Double
@@ -35,6 +38,14 @@ public enum SkillLevel: String, CaseIterable, Sendable {
         case .advanced: return (0.62, 0.62, 1.5, 0.72)
         }
     }
+    
+    public static func lasersSpeedMultiplier(for level: SkillLevel?) -> CGFloat {
+        switch level ?? .intermediate {
+        case .beginner: return 0.5
+        case .intermediate: return 1
+        case .advanced: return 1.5
+        }
+    }
 
     public static func simulatedDecibelLevel(
         at time: Date,
@@ -58,10 +69,6 @@ public enum SkillLevel: String, CaseIterable, Sendable {
             + spike + burst
         return min(1, max(0, baseLevel + CGFloat(raw - 0.5) * chaos))
     }
-
-    case beginner = "Beginner"
-    case intermediate = "Intermediate"
-    case advanced = "Advanced"
 
     public var displayName: String {
         switch self {

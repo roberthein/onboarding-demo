@@ -5,66 +5,26 @@ struct GradientView: View {
     let progress: CGFloat
     let primaryColor: UIColor
     let secondaryColor: UIColor
-    let decibelOverlayVisible: Bool
-    let decibelOverlayProgress: CGFloat
-    let decibelSkillLevel: SkillLevel?
 
     init(
         progress: CGFloat,
         primaryColor: UIColor,
-        secondaryColor: UIColor,
-        decibelOverlayVisible: Bool = false,
-        decibelOverlayProgress: CGFloat = 0,
-        decibelSkillLevel: SkillLevel? = nil
+        secondaryColor: UIColor
     ) {
         self.progress = progress
         self.primaryColor = primaryColor
         self.secondaryColor = secondaryColor
-        self.decibelOverlayVisible = decibelOverlayVisible
-        self.decibelOverlayProgress = decibelOverlayProgress
-        self.decibelSkillLevel = decibelSkillLevel
     }
 
     private var primary: Color { Color(uiColor: primaryColor) }
     private var secondary: Color { Color(uiColor: secondaryColor) }
 
     var body: some View {
-        ZStack {
-            gradient
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .ignoresSafeArea()
-
-            if decibelOverlayVisible {
-                decibelOverlay
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .ignoresSafeArea()
-            }
-        }
+        gradient
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
-    }
-
-    @ViewBuilder
-    private var decibelOverlay: some View {
-        TimelineView(.animation(minimumInterval: 1 / 60)) { context in
-            let params = SkillLevel.decibelSimulationParams(for: decibelSkillLevel)
-            let level = SkillLevel.simulatedDecibelLevel(at: context.date, baseLevel: params.baseLevel, chaos: params.chaos, tempoMultiplier: params.tempoMultiplier, spikeBurstWeight: params.spikeBurstWeight)
-            let t = context.date.timeIntervalSince1970 * Double(params.tempoMultiplier)
-            let sway = 0.25 + CGFloat(level) * 0.5
-            let swayX = (sin(t * 2.4) * 0.2 + sin(t * 3.7 + 1.2) * 0.1) * sway
-            let swayY = sin(t * 1.9 - 0.5) * 0.15 * sway
-
-            LinearGradient(
-                colors: [
-                    primary.opacity(0),
-                    primary,
-                ],
-                startPoint: UnitPoint(x: 0.5 + swayX, y: max(0, swayY)),
-                endPoint: UnitPoint(x: 0.5, y: 1)
-            )
-            .opacity((0.25 + Double(level) * 0.5) * Double(decibelOverlayProgress))
-        }
-        .allowsHitTesting(false)
     }
 
     private var gradient: LinearGradient {
@@ -111,5 +71,120 @@ struct GradientView: View {
             blue: (1 - blendFactor) * blueFirst + blendFactor * blueSecond,
             alpha: (1 - blendFactor) * alphaFirst + blendFactor * alphaSecond
         )
+    }
+}
+
+struct DecibelOverlayView: View {
+    let visible: Bool
+    let progress: CGFloat
+    let skillLevel: SkillLevel?
+    let color: UIColor
+
+    private var overlayColor: Color { Color(uiColor: color) }
+
+    var body: some View {
+        Group {
+            if visible {
+                TimelineView(.animation(minimumInterval: 1 / 60)) { context in
+                    let params = SkillLevel.decibelSimulationParams(for: skillLevel)
+                    let level = SkillLevel.simulatedDecibelLevel(
+                        at: context.date,
+                        baseLevel: params.baseLevel,
+                        chaos: params.chaos,
+                        tempoMultiplier: params.tempoMultiplier,
+                        spikeBurstWeight: params.spikeBurstWeight
+                    )
+                    let t = context.date.timeIntervalSince1970 * Double(params.tempoMultiplier)
+                    let sway = 0.25 + CGFloat(level) * 0.5
+                    let swayX = (sin(t * 2.4) * 0.2 + sin(t * 3.7 + 1.2) * 0.1) * sway
+                    let swayY = sin(t * 1.9 - 0.5) * 0.15 * sway
+
+                    LinearGradient(
+                        colors: [
+                            overlayColor.opacity(0),
+                            overlayColor,
+                        ],
+                        startPoint: UnitPoint(x: 0.5 + swayX, y: max(0, swayY)),
+                        endPoint: UnitPoint(x: 0.5, y: 1)
+                    )
+                    .opacity((0.25 + Double(level) * 0.5) * Double(progress))
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+    }
+}
+
+public final class DecibelOverlayBackgroundView: UIView {
+    private var hostingController: UIHostingController<DecibelOverlayView>?
+    private var visible: Bool = false
+    private var progress: CGFloat = 0
+    private var skillLevel: SkillLevel?
+    private var color: UIColor = .white
+
+    override public init(frame: CGRect) {
+        super.init(frame: frame)
+        isUserInteractionEnabled = false
+        backgroundColor = .clear
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override public func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window != nil, hostingController == nil {
+            installHostingController()
+        }
+    }
+
+    public func setOverlay(visible: Bool, skillLevel: SkillLevel?, progress: CGFloat) {
+        self.visible = visible
+        self.skillLevel = skillLevel
+        self.progress = progress
+        updateHostedView()
+    }
+
+    public func setColor(_ color: UIColor) {
+        self.color = color
+        updateHostedView()
+    }
+
+    private func installHostingController() {
+        guard let parentVC = nearestViewController else { return }
+        let hosting = UIHostingController(rootView: makeRootView())
+        hosting.view.translatesAutoresizingMaskIntoConstraints = false
+        hosting.view.backgroundColor = .clear
+        parentVC.addChild(hosting)
+        addSubview(hosting.view)
+        NSLayoutConstraint.activate([
+            hosting.view.topAnchor.constraint(equalTo: topAnchor),
+            hosting.view.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hosting.view.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hosting.view.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+        hosting.didMove(toParent: parentVC)
+        hostingController = hosting
+    }
+
+    private func updateHostedView() {
+        guard let hosting = hostingController else { return }
+        hosting.rootView = makeRootView()
+    }
+
+    private func makeRootView() -> DecibelOverlayView {
+        DecibelOverlayView(visible: visible, progress: progress, skillLevel: skillLevel, color: color)
+    }
+
+    private var nearestViewController: UIViewController? {
+        var responder: UIResponder? = self
+        while let next = responder?.next {
+            if let viewController = next as? UIViewController { return viewController }
+            responder = next
+        }
+        return nil
     }
 }

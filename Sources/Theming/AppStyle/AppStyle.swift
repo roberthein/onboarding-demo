@@ -71,7 +71,7 @@ public enum AppStyle {
 
     public enum Margin {
         public enum Figma {
-            public static let outer: CGFloat = 16
+            public static let outer: CGFloat = 32
             public static let inner: CGFloat = 8
             public static var outerDouble: CGFloat { outer * 2 }
             public static var outerHalf: CGFloat { outer / 2 }
@@ -80,7 +80,7 @@ public enum AppStyle {
         }
 
         public enum Experimental {
-            public static let outer: CGFloat = 24
+            public static let outer: CGFloat = 32
             public static let inner: CGFloat = 12
             public static var outerDouble: CGFloat { outer * 2 }
             public static var outerHalf: CGFloat { outer / 2 }
@@ -201,25 +201,11 @@ public enum AppStyle {
 
     public enum MainContent {
         public enum Figma {
-            public static let verticalOffsetStart: CGFloat = 320
-            public static let verticalOffsetEnd: CGFloat = 50
-            public static let appearPhaseEndY: CGFloat = 135
-            public static let scrollPhaseStartY: CGFloat = 320
-            public static let expandableTranslationY: CGFloat = 100
-            public static let expandableLabelTranslationY: CGFloat = 100
-            public static let labelScaleStart: CGFloat = 0.5
-            public static let labelScaleStartFactor: CGFloat = 0.6
+            public static let verticalOffset: CGFloat = 50
         }
 
         public enum Experimental {
-            public static let verticalOffsetStart: CGFloat = 320
-            public static let verticalOffsetEnd: CGFloat = 50
-            public static let appearPhaseEndY: CGFloat = 135
-            public static let scrollPhaseStartY: CGFloat = 320
-            public static let expandableTranslationY: CGFloat = 100
-            public static let expandableLabelTranslationY: CGFloat = 100
-            public static let labelScaleStart: CGFloat = 0.5
-            public static let labelScaleStartFactor: CGFloat = 0.6
+            public static let verticalOffset: CGFloat = 50
         }
     }
 
@@ -246,7 +232,7 @@ public enum AppStyle {
         }
 
         public enum Experimental {
-            public static let footerStartT: CGFloat = 0.2
+            public static let footerStartT: CGFloat = 0.25
             public static let footerEndT: CGFloat = 1
         }
     }
