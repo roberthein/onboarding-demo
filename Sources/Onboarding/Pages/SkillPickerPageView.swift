@@ -2,6 +2,12 @@ import QuartzCore
 import UIKit
 
 public final class SkillPickerPageView: ScrollablePageView {
+    private lazy var faceContainerView: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
     private lazy var faceImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -52,6 +58,8 @@ public final class SkillPickerPageView: ScrollablePageView {
     private var headBobDisplayLink: CADisplayLink?
     private var headBobStartTime: CFTimeInterval = 0
     private var congratsPageProgress: CGFloat = 0
+    private var faceTopInsetConstraint: NSLayoutConstraint?
+    private var congratsScrollStartOffsetY: CGFloat?
     private var selectedSkillLevel: SkillLevel?
 
     var onPickerSelect: ((SkillLevel?) -> Void)? {
@@ -70,7 +78,17 @@ public final class SkillPickerPageView: ScrollablePageView {
     }
 
     private func buildView() {
-        stackView.addArrangedSubview(faceImageView)
+        faceContainerView.addSubview(faceImageView)
+        let faceTopInset = faceImageView.topAnchor.constraint(equalTo: faceContainerView.topAnchor)
+        faceTopInsetConstraint = faceTopInset
+        NSLayoutConstraint.activate([
+            faceTopInset,
+            faceImageView.leadingAnchor.constraint(equalTo: faceContainerView.leadingAnchor),
+            faceImageView.trailingAnchor.constraint(equalTo: faceContainerView.trailingAnchor),
+            faceImageView.bottomAnchor.constraint(equalTo: faceContainerView.bottomAnchor),
+        ])
+
+        stackView.addArrangedSubview(faceContainerView)
         stackView.addArrangedSubview(titleLabel)
         stackView.addArrangedSubview(subtitleLabel)
         stackView.addArrangedSubview(pickerView)
@@ -97,14 +115,37 @@ public final class SkillPickerPageView: ScrollablePageView {
     }
 
     public func setCongratsPageProgress(_ progress: CGFloat) {
-        congratsPageProgress = progress
-        if progress > 0 {
+        let clampedProgress = progress.clamped(to: 0...1)
+        congratsPageProgress = clampedProgress
+        updateScrollToTop(progress: clampedProgress)
+        if clampedProgress > 0 {
             if headBobDisplayLink == nil {
                 startHeadBobbing()
             }
         } else {
+            congratsScrollStartOffsetY = nil
             stopHeadBobbing()
         }
+    }
+
+    private func updateScrollToTop(progress: CGFloat) {
+        let topOffsetY = -scrollView.adjustedContentInset.top
+        if progress <= 0 {
+            return
+        }
+        if congratsScrollStartOffsetY == nil {
+            congratsScrollStartOffsetY = scrollView.contentOffset.y
+        }
+        guard let startOffsetY = congratsScrollStartOffsetY else {
+            return
+        }
+        let interpolated = startOffsetY + (topOffsetY - startOffsetY) * progress.clamped(to: 0...1)
+        let maxOffsetY = max(
+            topOffsetY,
+            scrollView.contentSize.height + scrollView.adjustedContentInset.bottom - scrollView.bounds.height
+        )
+        let boundedOffsetY = min(max(interpolated, topOffsetY), maxOffsetY)
+        scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: boundedOffsetY), animated: false)
     }
 
     private func updateFaceImage(for level: SkillLevel?, animate: Bool = false) {
@@ -174,11 +215,11 @@ public final class SkillPickerPageView: ScrollablePageView {
         faceImageView.transform = CGAffineTransform(translationX: sway, y: bobY)
             .rotated(by: tilt)
     }
-}
 
-extension SkillPickerPageView: PageContentView {
-    public func apply(theme: Theme) {
+    override public func apply(theme: Theme) {
+        super.apply(theme: theme)
         self.theme = theme
+        faceTopInsetConstraint?.constant = theme.spacing.content
         stackView.spacing = theme.spacing.item
         let horizontalMargin = theme.skillPickerPage.horizontalMargin
         stackViewLeadingConstraint?.constant = horizontalMargin
@@ -191,6 +232,9 @@ extension SkillPickerPageView: PageContentView {
         stackView.setCustomSpacing(0, after: titleLabel)
         stackView.setCustomSpacing(theme.spacing.content, after: subtitleLabel)
     }
+}
+
+extension SkillPickerPageView: PageContentView {
 }
 
 extension SkillPickerPageView {

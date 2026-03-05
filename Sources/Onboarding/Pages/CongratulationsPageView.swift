@@ -2,6 +2,7 @@ import UIKit
 
 public final class CongratulationsPageView: ScrollablePageView {
     private var skillLevel: SkillLevel?
+    private var stackTopConstraint: NSLayoutConstraint?
     private var stackLeadingConstraint: NSLayoutConstraint?
     private var stackTrailingConstraint: NSLayoutConstraint?
 
@@ -44,12 +45,14 @@ public final class CongratulationsPageView: ScrollablePageView {
         stack.addArrangedSubview(titleLabel)
         stack.addArrangedSubview(subtitleLabel)
         centeredContentView.addSubview(stack)
+        let top = stack.topAnchor.constraint(equalTo: centeredContentView.topAnchor)
         let leading = stack.leadingAnchor.constraint(equalTo: centeredContentView.leadingAnchor, constant: 0)
         let trailing = stack.trailingAnchor.constraint(equalTo: centeredContentView.trailingAnchor, constant: 0)
+        stackTopConstraint = top
         stackLeadingConstraint = leading
         stackTrailingConstraint = trailing
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: centeredContentView.topAnchor),
+            top,
             leading,
             trailing,
             stack.bottomAnchor.constraint(equalTo: centeredContentView.bottomAnchor),
@@ -65,16 +68,19 @@ public final class CongratulationsPageView: ScrollablePageView {
     public func setSubtitle(_ text: String) {
         subtitleLabel.text = text
     }
-}
 
-extension CongratulationsPageView: PageContentView {
-    public func apply(theme: Theme) {
+    override public func apply(theme: Theme) {
+        super.apply(theme: theme)
         stack.spacing = theme.spacing.item
+        stackTopConstraint?.constant = theme.margin.outer
         stackLeadingConstraint?.constant = theme.margin.outer
         stackTrailingConstraint?.constant = -theme.margin.outer
         titleLabel.applyTitleStyle(theme: theme)
         subtitleLabel.applySubtitleStyle(theme: theme)
     }
+}
+
+extension CongratulationsPageView: PageContentView {
 }
 
 extension CongratulationsPageView {

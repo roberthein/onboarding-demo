@@ -9,10 +9,12 @@ public final class Root {
     public let onboardingContainer: OnboardingContainerViewController
 
     public init() {
-        themeProvider = ThemeProvider(initialTheme: .figma)
+        let appTheme: Theme = .figma
+        themeProvider = ThemeProvider(initialTheme: appTheme)
         debugProvider = DebugProvider(initialDebugEnabled: false)
         progressCoordinator = ScrollProgressCoordinator()
         onboardingContainer = OnboardingContainerViewController(
+            initialTheme: appTheme,
             themeProvider: themeProvider,
             debugProvider: debugProvider,
             progressCoordinator: progressCoordinator

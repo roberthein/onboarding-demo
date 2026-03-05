@@ -1,7 +1,10 @@
 import UIKit
 
-public class ScrollablePageView: UIView {
+public class ScrollablePageView: UIView, ThemedView {
     private var isDebugModeEnabled: Bool = false
+    private var themeContinuation: AsyncStream<Theme>.Continuation?
+    private(set) var currentTheme: Theme?
+    private var contentContainerMinHeightConstraint: NSLayoutConstraint?
 
     public lazy var scrollView: UIScrollView = {
         let scrollView = UIScrollView()
@@ -13,35 +16,17 @@ public class ScrollablePageView: UIView {
         return scrollView
     }()
 
-    private lazy var contentStack: UIStackView = {
-        let stackView = UIStackView()
-        stackView.axis = .vertical
-        stackView.alignment = .fill
-        stackView.distribution = .fill
-        stackView.spacing = 0
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        return stackView
-    }()
-
-    private lazy var topSpacer: UIView = {
-        let spacer = UIView()
-        spacer.translatesAutoresizingMaskIntoConstraints = false
-        spacer.setContentHuggingPriority(.defaultLow, for: .vertical)
-        return spacer
-    }()
-
-    private lazy var bottomSpacer: UIView = {
-        let spacer = UIView()
-        spacer.translatesAutoresizingMaskIntoConstraints = false
-        spacer.setContentHuggingPriority(.defaultLow, for: .vertical)
-        return spacer
-    }()
-
     public lazy var centeredContentView: UIView = {
         let contentView = UIView()
         contentView.translatesAutoresizingMaskIntoConstraints = false
         contentView.setContentHuggingPriority(.required, for: .vertical)
         contentView.setContentCompressionResistancePriority(.required, for: .vertical)
+        return contentView
+    }()
+
+    private lazy var contentContainerView: UIView = {
+        let contentView = UIView()
+        contentView.translatesAutoresizingMaskIntoConstraints = false
         return contentView
     }()
 
@@ -58,39 +43,83 @@ public class ScrollablePageView: UIView {
     private func buildView() {
         backgroundColor = .clear
         addSubview(scrollView)
-        scrollView.addSubview(contentStack)
-        contentStack.addArrangedSubview(topSpacer)
-        contentStack.addArrangedSubview(centeredContentView)
-        contentStack.addArrangedSubview(bottomSpacer)
+        scrollView.addSubview(contentContainerView)
+        contentContainerView.addSubview(centeredContentView)
         installDebugOverlay(tintColor: UIColor.systemGreen.withAlphaComponent(0.12))
         scrollView.installDebugOverlay(tintColor: UIColor.systemBlue.withAlphaComponent(0.12))
         centeredContentView.installDebugOverlay(tintColor: UIColor.systemOrange.withAlphaComponent(0.15))
         scrollView.backgroundColor = .clear
-        centeredContentView.backgroundColor = .clear
         let contentGuide = scrollView.contentLayoutGuide
         let frameGuide = scrollView.frameLayoutGuide
+        contentContainerMinHeightConstraint = contentContainerView.heightAnchor.constraint(greaterThanOrEqualTo: frameGuide.heightAnchor)
         NSLayoutConstraint.activate([
-            topSpacer.heightAnchor.constraint(equalTo: bottomSpacer.heightAnchor),
             scrollView.topAnchor.constraint(equalTo: topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            contentStack.topAnchor.constraint(equalTo: contentGuide.topAnchor),
-            contentStack.leadingAnchor.constraint(equalTo: contentGuide.leadingAnchor),
-            contentStack.trailingAnchor.constraint(equalTo: contentGuide.trailingAnchor),
-            contentStack.bottomAnchor.constraint(equalTo: contentGuide.bottomAnchor),
-            contentStack.widthAnchor.constraint(equalTo: frameGuide.widthAnchor),
-            contentGuide.heightAnchor.constraint(greaterThanOrEqualTo: frameGuide.heightAnchor),
+            contentContainerView.topAnchor.constraint(equalTo: contentGuide.topAnchor),
+            contentContainerView.leadingAnchor.constraint(equalTo: contentGuide.leadingAnchor),
+            contentContainerView.trailingAnchor.constraint(equalTo: contentGuide.trailingAnchor),
+            contentContainerView.bottomAnchor.constraint(equalTo: contentGuide.bottomAnchor),
+            contentContainerView.widthAnchor.constraint(equalTo: frameGuide.widthAnchor),
+            contentContainerMinHeightConstraint!,
+            centeredContentView.topAnchor.constraint(greaterThanOrEqualTo: contentContainerView.topAnchor),
+            centeredContentView.leadingAnchor.constraint(equalTo: contentContainerView.leadingAnchor),
+            centeredContentView.trailingAnchor.constraint(equalTo: contentContainerView.trailingAnchor),
+            centeredContentView.bottomAnchor.constraint(lessThanOrEqualTo: contentContainerView.bottomAnchor),
+            centeredContentView.centerYAnchor.constraint(equalTo: contentContainerView.centerYAnchor),
+            centeredContentView.widthAnchor.constraint(equalTo: frameGuide.widthAnchor),
         ])
+        updateInsetAwareLayout()
+    }
+
+    private func updateInsetAwareLayout() {
+        let verticalInsets = scrollView.contentInset.top + scrollView.contentInset.bottom
+        contentContainerMinHeightConstraint?.constant = -verticalInsets
+    }
+
+    public func refreshScrollableLayout() {
+        updateInsetAwareLayout()
+        setNeedsLayout()
+        layoutIfNeeded()
+        scrollView.setNeedsLayout()
+        scrollView.layoutIfNeeded()
     }
 
     public func setDebugModeEnabled(_ enabled: Bool) {
         isDebugModeEnabled = enabled
         backgroundColor = .clear
         scrollView.backgroundColor = .clear
-        centeredContentView.backgroundColor = .clear
         setDebugOverlayVisible(enabled)
         scrollView.setDebugOverlayVisible(enabled)
         centeredContentView.setDebugOverlayVisible(enabled)
+    }
+
+    public func apply(theme: Theme) {
+        currentTheme = theme
+        scrollView.contentInset.top = theme.margin.outer
+        scrollView.contentInset.bottom = theme.margin.outer
+        updateInsetAwareLayout()
+        themeContinuation?.yield(theme)
+    }
+
+    public func themeStream() -> AsyncStream<Theme> {
+        AsyncStream { [weak self] continuation in
+            guard let self else { return }
+            themeContinuation = continuation
+            if let currentTheme {
+                continuation.yield(currentTheme)
+            }
+            let ref = WeakSendable(self)
+            continuation.onTermination = { _ in
+                Task { @MainActor in
+                    ref.value?.themeContinuation = nil
+                }
+            }
+        }
+    }
+
+    deinit {
+        themeContinuation?.finish()
     }
 }

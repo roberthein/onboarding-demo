@@ -8,6 +8,7 @@ public final class MainContentView: UIView {
     private var compactConstraints: [NSLayoutConstraint] = []
     private var expandedConstraints: [NSLayoutConstraint] = []
     private var expansionAnimator: UIViewPropertyAnimator?
+    private var isExpandedLayoutActive: Bool = false
 
     private lazy var firstImageView: UIImageView = {
         let imageView = UIImageView()
@@ -124,16 +125,72 @@ public final class MainContentView: UIView {
         secondImageView.alpha = alpha
         label.alpha = alpha
         accoladeContainerView.alpha = alpha
+        updateExpansionAnimationProgress()
+    }
+
+    private func activateCompactLayout() {
+        guard isExpandedLayoutActive else { return }
+        NSLayoutConstraint.deactivate(expandedConstraints)
+        NSLayoutConstraint.activate(compactConstraints)
+        isExpandedLayoutActive = false
+        setNeedsLayout()
+        layoutIfNeeded()
+    }
+
+    private func makeExpansionAnimatorIfNeeded() {
+        guard expansionAnimator == nil, theme != nil, !expandedConstraints.isEmpty else { return }
+        layoutIfNeeded()
+        let animator = UIViewPropertyAnimator(duration: 0.4, curve: .linear) { [weak self] in
+            guard let self else { return }
+            if isExpandedLayoutActive {
+                NSLayoutConstraint.deactivate(self.expandedConstraints)
+                NSLayoutConstraint.activate(self.compactConstraints)
+                isExpandedLayoutActive = false
+            } else {
+                NSLayoutConstraint.deactivate(self.compactConstraints)
+                NSLayoutConstraint.activate(self.expandedConstraints)
+                isExpandedLayoutActive = true
+            }
+
+            self.layoutIfNeeded()
+        }
+        animator.startAnimation()
+        animator.pauseAnimation()
+        expansionAnimator = animator
+    }
+
+    private func updateExpansionAnimationProgress() {
+        guard theme != nil else {
+            expansionAnimator?.stopAnimation(true)
+            expansionAnimator = nil
+            activateCompactLayout()
+            return
+        }
+        if expansionProgress <= 0.001 {
+            expansionAnimator?.stopAnimation(true)
+            expansionAnimator = nil
+            activateCompactLayout()
+            return
+        }
+        makeExpansionAnimatorIfNeeded()
         expansionAnimator?.fractionComplete = expansionProgress
     }
 
     private func rebuildExpansionConstraints() {
-        guard let theme else { return }
         NSLayoutConstraint.deactivate(compactConstraints + expandedConstraints)
+        expansionAnimator?.stopAnimation(true)
+        expansionAnimator = nil
+        isExpandedLayoutActive = false
 
         compactConstraints = [
             firstImageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
         ]
+        NSLayoutConstraint.activate(compactConstraints)
+
+        // Keep a valid intrinsic height before the first theme arrives.
+        guard let theme else {
+            return
+        }
 
         expandedConstraints = [
             firstImageView.bottomAnchor.constraint(equalTo: secondImageView.topAnchor, constant: -theme.margin.outer),
@@ -141,21 +198,6 @@ public final class MainContentView: UIView {
             label.bottomAnchor.constraint(equalTo: accoladeContainerView.topAnchor, constant: -theme.margin.outer),
             accoladeContainerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
         ]
-
-        NSLayoutConstraint.activate(compactConstraints)
-        layoutIfNeeded()
-
-        expansionAnimator?.stopAnimation(true)
-        let animator = UIViewPropertyAnimator(duration: 0.4, curve: .linear) { [weak self] in
-            guard let self else { return }
-            NSLayoutConstraint.deactivate(self.compactConstraints)
-            NSLayoutConstraint.activate(self.expandedConstraints)
-            self.layoutIfNeeded()
-        }
-        animator.startAnimation()
-        animator.pauseAnimation()
-        animator.fractionComplete = expansionProgress
-        expansionAnimator = animator
     }
 }
 

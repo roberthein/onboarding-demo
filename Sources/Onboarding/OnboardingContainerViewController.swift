@@ -3,6 +3,7 @@ import UIKit
 private let appearAnimationDurationMultiplier: TimeInterval = 3
 
 public final class OnboardingContainerViewController: UIViewController {
+    private let initialTheme: Theme
     private let themeProvider: ThemeProviding
     private let debugProvider: DebugProviding
     private let progressCoordinator: ScrollProgressCoordinator
@@ -12,7 +13,7 @@ public final class OnboardingContainerViewController: UIViewController {
     private var themeTask: Task<Void, Never>?
     private var debugTask: Task<Void, Never>?
     private var skillLevelTask: Task<Void, Never>?
-    private var lastTheme: Theme?
+    private var lastTheme: Theme
     private var lastScrollSnapshot: ScrollProgressSnapshot?
     private var hasAppearAnimationCompleted = false
     private var appearAnimator: DisplayLinkAnimator?
@@ -49,7 +50,11 @@ public final class OnboardingContainerViewController: UIViewController {
     }
 
     private var scrollTranslationApplicables: [ScrollTranslationApplicable] {
-        [mainContentPageView, skillPickerPageView]
+        [skillPickerPageView]
+    }
+
+    private var scrollablePages: [ScrollablePageView] {
+        [mainContentPageView, accoladesPageView, skillPickerPageView, congratulationsPageView]
     }
 
     private var containerView: OnboardingContainerView {
@@ -57,14 +62,17 @@ public final class OnboardingContainerViewController: UIViewController {
     }
 
     public init(
+        initialTheme: Theme,
         themeProvider: ThemeProviding,
         debugProvider: DebugProviding,
         progressCoordinator: ScrollProgressCoordinator
     ) {
+        self.initialTheme = initialTheme
         self.themeProvider = themeProvider
         self.debugProvider = debugProvider
         self.progressCoordinator = progressCoordinator
         self.viewModel = OnboardingViewModel()
+        self.lastTheme = initialTheme
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -78,6 +86,7 @@ public final class OnboardingContainerViewController: UIViewController {
 
     override public func viewDidLoad() {
         super.viewDidLoad()
+        applyThemeUpdates(theme: initialTheme, isDebugEnabled: false)
 
         skillPickerPageView.onPickerSelect = { [weak self] level in
             self?.skillPickerPageView.setSelected(level, animate: true)
@@ -144,13 +153,7 @@ public final class OnboardingContainerViewController: UIViewController {
 
     private func performAppearAnimation() async {
         guard !hasAppearAnimationCompleted else { return }
-        let theme: Theme
-        if let currentTheme = lastTheme {
-            theme = currentTheme
-        } else {
-            theme = await themeProvider.currentTheme
-        }
-        lastTheme = theme
+        let theme = lastTheme
         let duration = theme.motion.duration * appearAnimationDurationMultiplier
         let startTime = CACurrentMediaTime()
         containerView.setGradientProgress(-1)
@@ -204,6 +207,13 @@ public final class OnboardingContainerViewController: UIViewController {
             guard let self else { return }
             view.setNeedsLayout()
             view.layoutIfNeeded()
+            scrollablePages.forEach { $0.refreshScrollableLayout() }
+            containerView.pagedScrollView.scrollToPage(savedPageIndex, animated: false)
+        }, completion: { [weak self] _ in
+            guard let self else { return }
+            view.setNeedsLayout()
+            view.layoutIfNeeded()
+            scrollablePages.forEach { $0.refreshScrollableLayout() }
             containerView.pagedScrollView.scrollToPage(savedPageIndex, animated: false)
         })
     }
@@ -213,7 +223,7 @@ public final class OnboardingContainerViewController: UIViewController {
             guard let self else { return }
             let stream = await themeProvider.themeStream()
             for await theme in stream {
-                let isThemeChange = lastTheme != nil && lastTheme != theme
+                let isThemeChange = lastTheme != theme
                 lastTheme = theme
                 let isDebugEnabled = await debugProvider.isDebugEnabled
                 applyThemeAnimated(theme: theme, isDebugEnabled: isDebugEnabled, animate: isThemeChange)
@@ -320,8 +330,7 @@ public final class OnboardingContainerViewController: UIViewController {
     }
 
     private func refreshDebugOverlay() {
-        guard let theme = lastTheme else { return }
-        containerView.setDebugInfo(scrollSnapshot: lastScrollSnapshot, theme: theme)
+        containerView.setDebugInfo(scrollSnapshot: lastScrollSnapshot, theme: lastTheme)
     }
 
     private func handleProgress(_ snapshot: ScrollProgressSnapshot) {
@@ -398,7 +407,7 @@ public final class OnboardingContainerViewController: UIViewController {
     private func refreshFooterState(activePageIndex: Int? = nil, progressToFourthScreen: CGFloat? = nil, progressToPage1: CGFloat? = nil) {
         let pageIndex = activePageIndex ?? containerView.pagedScrollView.currentPageIndex
         let footer = containerView.footerView
-        guard let theme = lastTheme else { return }
+        let theme = lastTheme
 
         let progress: CGFloat = viewModel.isLastPageIncluded ? 0 : (progressToFourthScreen ?? 0)
 

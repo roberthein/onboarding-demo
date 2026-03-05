@@ -44,6 +44,13 @@ public final class MainContentPageView: ScrollablePageView {
         updateTransform()
     }
 
+    override public func apply(theme: Theme) {
+        super.apply(theme: theme)
+        mainContent.apply(theme: theme)
+        self.theme = theme
+        updateTransform()
+    }
+
     private func updateTransform() {
         guard let theme else { return }
         let mainContent = theme.mainContent
@@ -56,19 +63,5 @@ public final class MainContentPageView: ScrollablePageView {
 extension MainContentPageView: PageAppearanceUpdatable {
     public func updateAppearance(progress: CGFloat) {
         mainContent.updateAppearance(progress: progress)
-    }
-}
-
-extension MainContentPageView: ScrollTranslationApplicable {
-
-    public func applyScrollTranslation(contentOffsetX: CGFloat, pageWidth: CGFloat) {
-    }
-}
-
-extension MainContentPageView: ThemedView {
-    public func apply(theme: Theme) {
-        mainContent.apply(theme: theme)
-        self.theme = theme
-        updateTransform()
     }
 }
